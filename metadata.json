@@ -1,0 +1,6 @@
+{
+  "name": "Mental Sanctuary",
+  "description": "Minimalist cognitive training space and mental wellness tracker combining scientific rigor with retro analog aesthetics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

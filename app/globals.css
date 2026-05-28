@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #1A1A1A;
+  --color-accent: #FF5028;
+  --color-background: #D4D1CA;
+  --color-ink: #1A1A1A;
+  --color-ink-muted: rgba(26, 26, 26, 0.6);
+  --color-mint-deep: #409E85;
+  --color-hairline: rgba(26, 26, 26, 0.15);
+  --color-outline-variant: rgba(26, 26, 26, 0.25);
+  --font-serif: Georgia, serif;
+  --font-sans: 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'Courier New', monospace;
+}
+
+body {
+  background-color: #D4D1CA !important;
+  color: #1A1A1A !important;
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Stark Brutalist Card Helpers */
+.brutalist-border {
+  border: 1px solid #1A1A1A !important;
+}
+
+.brutalist-border-2 {
+  border: 2px solid #1A1A1A !important;
+}
+
+.brutalist-card {
+  background: rgba(255, 255, 255, 0.3) !important;
+  border: 1px solid #1A1A1A !important;
+  border-radius: 0px !important;
+}
+
+.brutalist-card-solid {
+  background: #FFFFFF !important;
+  border: 1px solid #1A1A1A !important;
+  border-radius: 0px !important;
+}
+
+.display-title-stark {
+  font-size: 72px;
+  line-height: 0.85;
+  letter-spacing: -0.04em;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+@media (min-width: 768px) {
+  .display-title-stark {
+    font-size: 112px;
+  }
+}
