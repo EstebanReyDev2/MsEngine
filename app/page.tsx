@@ -10,7 +10,7 @@ import ExercisesView from '@/components/ExercisesView';
 import ProfileView from '@/components/ProfileView';
 import PatternRecall from '@/components/games/PatternRecall';
 import TrainOfThought from '@/components/games/TrainOfThought';
-import CafeExpreso from '@/components/games/CafeExpreso';
+import { CafeExpresoRoot } from '@/components/games/cafe-expreso';
 import NeuralHorizon from '@/components/games/NeuralHorizon';
 import QuantumTrace from '@/components/games/QuantumTrace';
 import ChronosSync from '@/components/games/ChronosSync';
@@ -87,7 +87,7 @@ export default function Home() {
     return (
       <AnalogPostProcessing>
         {currentGame === 'express' ? (
-          <CafeExpreso 
+          <CafeExpresoRoot 
             currentUser={user}
             onBack={() => setActiveTab('practice')}
             onRefreshUser={refreshUser}

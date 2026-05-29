@@ -1,7 +1,8 @@
 // 📂 /components/games/QuantumTrace.tsx
+// MOBILE-OPTIMIZED: touch-action, hit areas 44px+, haptic feedback, responsive SVG
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { supabaseClient } from '@/lib/supabaseClient';
 import { 
   ArrowLeft, Volume2, VolumeX, Trophy, Sparkles, CheckCircle2, 
@@ -9,6 +10,8 @@ import {
   Play, RotateCcw, Share2, Activity, GitCommit, Compass
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useResponsiveScale } from '@/hooks/use-responsive-scale';
+import { useHaptic } from '@/hooks/use-haptic';
 
 interface Node {
   id: number;
@@ -32,9 +35,8 @@ const getNow = (): number => {
 };
 
 // Irwin-Hall or custom noise stable generator helper (to avoid render side effects)
-const generateQuantumGraph = (numNodes: number): Node[] => {
+const generateQuantumGraph = (numNodes: number, minDistance = 140): Node[] => {
   const newNodes: Node[] = [];
-  const minDistance = 140; // prevents crowding coordinates on 1000x700 viewport
   
   let attempts = 0;
   while (newNodes.length < numNodes && attempts < 200) {
@@ -75,9 +77,12 @@ interface RoundData {
   sequence: number[];
 }
 
-const prepareRoundData = (currentRound: number, desiredSeqLength: number): RoundData => {
-  const totalNodesCount = Math.min(12, 6 + Math.floor(currentRound / 2));
-  const generatedNodes = generateQuantumGraph(totalNodesCount);
+const prepareRoundData = (currentRound: number, desiredSeqLength: number, isMobile: boolean): RoundData => {
+  // En mobile reducimos la cantidad de nodos para que haya más espacio entre ellos
+  const maxNodes = isMobile ? 8 : 12;
+  const totalNodesCount = Math.min(maxNodes, 4 + Math.floor(currentRound / 2));
+  const minDist = isMobile ? 180 : 140; // Más separación en mobile
+  const generatedNodes = generateQuantumGraph(totalNodesCount, minDist);
   
   const draftSequence: number[] = [];
   let currentIdx = Math.floor(Math.random() * totalNodesCount);
@@ -104,6 +109,15 @@ const prepareRoundData = (currentRound: number, desiredSeqLength: number): Round
 };
 
 export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { onBack: () => void, currentUser: any, onRefreshUser: () => void }) {
+  const haptic = useHaptic();
+  const { nodeRadius, hitAreaRadius, isMobile, mobileFactor } = useResponsiveScale({
+    baseWidth: 1000,
+    baseHeight: 700,
+    minNodeRadius: 7,
+    minHitAreaRadius: 22,
+    mobileScaleFactor: 1.8,
+  });
+
   // Game state configurations
   const [gameState, setGameState] = useState<GameState>('lobby');
   const [nodes, setNodes] = useState<Node[]>([]);
@@ -132,6 +146,9 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [helpOpened, setHelpOpened] = useState<boolean>(true);
   const [history, setHistory] = useState<PerformanceLog[]>([]);
+
+  // Referencia al SVG container para touch-action
+  const arenaRef = useRef<HTMLDivElement>(null);
 
   // Sound generator (stabilized inside useCallback callback)
   const playSound = React.useCallback((freq: number, type: 'sine' | 'square' | 'triangle' | 'sawtooth' = 'sine', duration = 0.2) => {
@@ -172,7 +189,7 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
     setOnlyShowSequenceNodes(false);
     
     // Gen initial configuration & run
-    const { nodes: generatedNodes, sequence: draftSequence } = prepareRoundData(1, 3);
+    const { nodes: generatedNodes, sequence: draftSequence } = prepareRoundData(1, 3, isMobile);
     setNodes(generatedNodes);
     setSequence(draftSequence);
     setPlayerInput([]);
@@ -181,12 +198,12 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
     setIsLineDrawing(true);
     setGameState('showing_path');
     playSound(440, 'triangle', 0.15);
+    haptic.light();
   };
 
   // Build the constellation and sequence logic dynamically per round
   const setupNextRound = (currentRound: number, desiredSeqLength: number, currentInterval: number) => {
-    // 1. Scaled node population (6 on base levels up to 11 on advanced levels)
-    const { nodes: generatedNodes, sequence: draftSequence } = prepareRoundData(currentRound, desiredSeqLength);
+    const { nodes: generatedNodes, sequence: draftSequence } = prepareRoundData(currentRound, desiredSeqLength, isMobile);
     setNodes(generatedNodes);
     setSequence(draftSequence);
     setPlayerInput([]);
@@ -206,7 +223,6 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
     if (gameState !== 'showing_path' || sequence.length === 0) return;
 
     let index = 0;
-    // Removed synchronous state updates from effect body to prevent cascading render cycles
     playSound(350 + index * 100, 'sine', 0.18);
 
     const intervalTimer = setInterval(() => {
@@ -216,20 +232,18 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
         playSound(350 + index * 100, 'sine', 0.18);
       } else {
         clearInterval(intervalTimer);
-        // Completed demo showing path, handle Advanced Distractor Shifts if complex
         const isAdvancedSpatialShift = round >= 3;
-        const rollRotation = isAdvancedSpatialShift ? (Math.random() > 0.5 ? 20 : -20) : 0;
+        const rollRotation = isAdvancedSpatialShift ? (Math.random() > 0.5 ? (isMobile ? 10 : 20) : isMobile ? -10 : -20) : 0;
         
         if (isAdvancedSpatialShift) {
           setIsRotatingEffect(true);
-          // Play spatial rotation sound cue
           playSound(280, 'sawtooth', 0.45);
           
           setTimeout(() => {
             setRotationDegrees(rollRotation);
-            setOnlyShowSequenceNodes(round >= 5); // extra memory fog distractor
+            setOnlyShowSequenceNodes(round >= 5);
             setGameState('player_input');
-            playSound(587.33, 'triangle', 0.12); // launch input tone
+            playSound(587.33, 'triangle', 0.12);
           }, 600);
         } else {
           setRotationDegrees(0);
@@ -242,7 +256,7 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
     return () => {
       clearInterval(intervalTimer);
     };
-  }, [gameState, sequence, nodeDisplayInterval, round, playSound]);
+  }, [gameState, sequence, nodeDisplayInterval, round, playSound, isMobile]);
 
   // Player action interactions click node handler
   const handleNodeClick = (nodeId: number) => {
@@ -252,14 +266,12 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
     const expectedNodeId = sequence[currentSequenceIndex];
 
     if (nodeId === expectedNodeId) {
-      // ✅ CORRECT NODE MATCH
       const updatedInput = [...playerInput, nodeId];
       setPlayerInput(updatedInput);
       playSound(500 + currentSequenceIndex * 80, 'sine', 0.1);
+      haptic.light();
 
-      // Verify if sequence has been solved fully
       if (updatedInput.length === sequence.length) {
-        // Compute achievements metrics
         const speedMultiplier = Math.max(1, Math.floor((1000 - nodeDisplayInterval) / 100));
         const addedValue = (sequenceLength * 15) + (currentStreak * 10) + (speedMultiplier * 20);
         
@@ -270,7 +282,6 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
           return next;
         });
 
-        // Save trace performance metrics log
         const log: PerformanceLog = {
           round,
           length: sequenceLength,
@@ -281,21 +292,19 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
         };
         setHistory(prev => [log, ...prev]);
 
-        // Trigger victory celebration pitch
         playSound(659.25, 'triangle', 0.12);
         setTimeout(() => playSound(880, 'sine', 0.18), 100);
         setTimeout(() => playSound(1318.51, 'sine', 0.3), 200);
+        haptic.success();
 
         setGameState('success');
-
-        // Dynamic complexity upgrade
         setRound(prev => prev + 1);
         setSequenceLength(prev => Math.min(10, prev + 1));
         setNodeDisplayInterval(prev => Math.max(300, prev - 60));
       }
     } else {
-      // ❌ WRONG NODE MISMATCH MATCH
       playSound(150, 'sawtooth', 0.5);
+      haptic.error();
       
       const accuracyPercent = Math.round((currentSequenceIndex / sequence.length) * 100);
       const log: PerformanceLog = {
@@ -318,7 +327,6 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
 
       setCurrentStreak(0);
       setGameState('failure');
-      // Dynamic adjust on error: keep length or drop slightly to aid cognitive focus
       setSequenceLength(prev => Math.max(3, prev - 1));
       setNodeDisplayInterval(prev => Math.min(950, prev + 80));
     }
@@ -337,6 +345,7 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
   const handleFinishSession = (finalScore: number) => {
     setGameState('gameover');
     playSound(200, 'sawtooth', 0.8);
+    haptic.heavy();
     
     if (currentUser) {
       try {
@@ -353,15 +362,24 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
     }
   };
 
+  // Tamaños visuales dinámicos según viewport
+  const visualOuterRadius = Math.round(24 * (isMobile ? mobileFactor : 1));
+  const visualInnerRadius = Math.round(nodeRadius);
+  const glowRadius = Math.round(40 * (isMobile ? mobileFactor : 1));
+  const sequenceLabelOffset = Math.round(36 * (isMobile ? mobileFactor : 1));
+
   return (
-    <div id="quantum-trace-game" className="w-full max-w-[1050px] mx-auto bg-zinc-950 text-zinc-100 border-4 border-zinc-900 p-4 md:p-6 select-none font-sans overflow-hidden relative">
+    <div 
+      id="quantum-trace-game" 
+      className="game-area w-full max-w-[1050px] mx-auto bg-zinc-950 text-zinc-100 border-4 border-zinc-900 p-4 md:p-6 select-none font-sans overflow-hidden relative"
+    >
       
       {/* 🚀 Sleek Futuristic HUD Dashboard Top banner */}
       <div className="relative z-10 flex flex-col md:flex-row justify-between items-stretch gap-4 pb-4 border-b border-zinc-800 mb-6">
         <div className="flex items-center gap-3">
           <button 
             onClick={onBack}
-            className="p-2 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-white transition-all cursor-pointer rounded-none bg-zinc-900/50"
+            className="p-2 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-white transition-all cursor-pointer rounded-none bg-zinc-900/50 min-w-[44px] min-h-[44px] flex items-center justify-center"
             title="Atrás al Menú"
             id="quantum-back-button"
           >
@@ -402,14 +420,14 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
         <div className="flex items-center gap-1.5 self-center">
           <button 
             onClick={() => setSoundEnabled(!soundEnabled)}
-            className="p-2.5 border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white cursor-pointer"
+            className="p-2.5 border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
             id="quantum-sound-toggle"
           >
             {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
           </button>
           <button 
             onClick={() => setHelpOpened(prev => !prev)}
-            className="p-2.5 border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white cursor-pointer"
+            className="p-2.5 border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
             id="quantum-help-toggle"
           >
             <HelpCircle size={16} />
@@ -421,7 +439,10 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10 items-start">
         
         {/* Left Interactive Arena block */}
-        <div className="lg:col-span-8 bg-zinc-900/40 border border-zinc-800 p-2 relative min-h-[520px] flex items-center justify-center">
+        <div 
+          ref={arenaRef}
+          className="game-area-precise lg:col-span-8 bg-zinc-900/40 border border-zinc-800 p-2 relative min-h-[420px] md:min-h-[520px] flex items-center justify-center"
+        >
           
           {/* Subtle quantum grid background dot pattern */}
           <div className="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:20px_20px] opacity-25 pointer-events-none" />
@@ -460,7 +481,7 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
 
                   <button 
                     onClick={startNewGame}
-                    className="w-full py-4 bg-cyan-500 text-black font-black text-sm uppercase tracking-wider rounded-none hover:bg-white transition-all border border-transparent cursor-pointer"
+                    className="w-full py-4 bg-cyan-500 text-black font-black text-sm uppercase tracking-wider rounded-none hover:bg-white transition-all border border-transparent cursor-pointer min-h-[52px]"
                   >
                     CONECTAR RED CUÁNTICA
                   </button>
@@ -505,13 +526,13 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
                   <div className="flex flex-col gap-2 pt-2">
                     <button 
                       onClick={startNewGame}
-                      className="py-3 bg-cyan-500 hover:bg-white text-black font-black text-xs uppercase cursor-pointer transition-all"
+                      className="py-3 bg-cyan-500 hover:bg-white text-black font-black text-xs uppercase cursor-pointer transition-all min-h-[48px]"
                     >
                       Reiniciar Matriz
                     </button>
                     <button 
                       onClick={onBack}
-                      className="py-3 bg-zinc-900 border border-zinc-800 text-zinc-400 font-black text-xs uppercase cursor-pointer"
+                      className="py-3 bg-zinc-900 border border-zinc-800 text-zinc-400 font-black text-xs uppercase cursor-pointer min-h-[48px]"
                     >
                       Salir
                     </button>
@@ -531,6 +552,7 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
               viewBox="0 0 1000 700" 
               className="w-full h-full overflow-visible"
               id="quantum-svg-viewport"
+              style={{ touchAction: 'none' }}
             >
               {/* background connecting paths: visual layout only */}
               {gameState !== 'lobby' && nodes.map((node, index) => {
@@ -565,7 +587,7 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
                       x2={toNode.x}
                       y2={toNode.y}
                       className="stroke-amber-400"
-                      strokeWidth={3.5}
+                      strokeWidth={isMobile ? 5 : 3.5}
                       initial={{ pathLength: 0 }}
                       animate={{ pathLength: 1 }}
                       transition={{ duration: 0.3 }}
@@ -590,7 +612,7 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
                       x2={toNode.x}
                       y2={toNode.y}
                       className="stroke-cyan-400 shadow-xl"
-                      strokeWidth={4.5}
+                      strokeWidth={isMobile ? 6 : 4.5}
                     />
                   );
                 })
@@ -612,10 +634,7 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
                   const isAlreadyConnected = playerInput.includes(node.id);
                   isHighlighted = isAlreadyConnected;
                   
-                  // Check if wrong button clicked
                   if (gameState === 'failure' && playerInput.length < sequence.length) {
-                    // Check if it's the node clicked wrong
-                    // It's the one we failed at
                     isErrorState = isAlreadyConnected;
                   }
                   if (gameState === 'success') {
@@ -623,22 +642,38 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
                   }
                 }
 
-                // Fog distractor mode in round >= 5 (Dims out non sequence nodes entirely)
+                // Fog distractor mode in round >= 5
                 const isDimmed = onlyShowSequenceNodes && !isSequenceMember && gameState === 'player_input';
 
                 return (
                   <g 
                     key={`quantum-node-${node.id}`}
-                    className={`transition-opacity duration-500 cursor-pointer ${isDimmed ? 'opacity-[0.05] pointer-events-none' : 'opacity-100'}`}
+                    className={`transition-opacity duration-500 ${isDimmed ? 'opacity-[0.05] pointer-events-none' : 'opacity-100'}`}
                     onClick={() => handleNodeClick(node.id)}
+                    onTouchEnd={(e) => {
+                      // En mobile, prevenimos duplicación del evento click
+                      e.preventDefault();
+                      handleNodeClick(node.id);
+                    }}
+                    style={{ touchAction: 'none', cursor: gameState === 'player_input' ? 'pointer' : 'default' }}
                   >
+                    {/* ✅ HIT AREA INVISIBLE — FAT FINGER TOLERANCE */}
+                    {/* Este círculo invisible captura el toque en un área mínima de 44px */}
+                    <circle
+                      cx={node.x}
+                      cy={node.y}
+                      r={hitAreaRadius}
+                      fill="transparent"
+                      className="cursor-pointer"
+                    />
+
                     {/* Ring highlight wave shock pulsator */}
                     <AnimatePresence>
                       {isHighlighted && (
                         <motion.circle 
                           cx={node.x}
                           cy={node.y}
-                          r={40}
+                          r={glowRadius}
                           className="fill-none stroke-cyan-500/30"
                           strokeWidth={2}
                           initial={{ scale: 0.5, opacity: 1 }}
@@ -653,7 +688,7 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
                     <circle 
                       cx={node.x}
                       cy={node.y}
-                      r={24}
+                      r={visualOuterRadius}
                       className={`transition-all duration-300 ${
                         isErrorState 
                           ? 'fill-rose-950/80 stroke-rose-500 animate-pulse'
@@ -663,14 +698,14 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
                           ? 'fill-cyan-950/80 stroke-cyan-400'
                           : 'fill-zinc-950 stroke-zinc-700/80 hover:stroke-zinc-500 hover:fill-zinc-900'
                       }`}
-                      strokeWidth={2.5}
+                      strokeWidth={isMobile ? 3 : 2.5}
                     />
 
                     {/* Visual core vector node dots */}
                     <circle 
                       cx={node.x}
                       cy={node.y}
-                      r={7}
+                      r={visualInnerRadius}
                       className={`${
                         isErrorState
                           ? 'fill-rose-500'
@@ -682,15 +717,27 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
                       }`}
                     />
 
-                    {/* Sequential labeling */}
-                    <text 
-                      x={node.x}
-                      y={node.y + 36}
-                      textAnchor="middle"
-                      className="fill-zinc-500 text-[11px] font-mono select-none"
-                    >
-                      {`NODE_0${node.id}`}
-                    </text>
+                    {/* Sequential labeling — más pequeño en mobile */}
+                    {!isMobile && (
+                      <text 
+                        x={node.x}
+                        y={node.y + sequenceLabelOffset}
+                        textAnchor="middle"
+                        className="fill-zinc-500 text-[11px] font-mono select-none"
+                      >
+                        {`NODE_0${node.id}`}
+                      </text>
+                    )}
+                    {isMobile && (
+                      <text 
+                        x={node.x}
+                        y={node.y + sequenceLabelOffset}
+                        textAnchor="middle"
+                        className="fill-zinc-600 text-[8px] font-mono select-none"
+                      >
+                        {`N${node.id}`}
+                      </text>
+                    )}
                   </g>
                 );
               })}
@@ -716,7 +763,7 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
             <div>
               <span className="text-zinc-500">ESTADO RED: <span className="text-cyan-400 font-bold">{gameState.toUpperCase()}</span></span>
             </div>
-            <div>
+            <div className="hidden md:block">
               {gameState === 'showing_path' && (
                 <span className="text-amber-400 animate-pulse">🛰️ MUESTRA DE SECUENCIA EN PROCESO...</span>
               )}
@@ -759,7 +806,7 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
 
               <button 
                 onClick={handleContinue}
-                className={`w-full py-3 text-xs font-bold uppercase tracking-widest cursor-pointer ${
+                className={`w-full py-3 text-xs font-bold uppercase tracking-widest cursor-pointer min-h-[48px] ${
                   gameState === 'success' ? 'bg-emerald-500 hover:bg-white text-black' : 'bg-rose-500 hover:bg-white text-black'
                 }`}
               >
@@ -772,7 +819,7 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
             <div className="bg-cyan-950/10 border border-cyan-500 p-5 relative rounded-none">
               <button 
                 onClick={() => setHelpOpened(false)}
-                className="absolute right-3 top-3 text-[10px] uppercase font-black tracking-widest text-cyan-400 font-mono hover:underline cursor-pointer"
+                className="absolute right-3 top-3 text-[10px] uppercase font-black tracking-widest text-cyan-400 font-mono hover:underline cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
                 id="quantum-close-tutorial"
               >
                 ✕ Cerrar
@@ -787,7 +834,7 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-cyan-400 font-black">2.</span>
-                  <span>Haz clic en los nodos en <strong className="text-white">exactamente el mismo orden</strong>.</span>
+                  <span>Toca los nodos en <strong className="text-white">exactamente el mismo orden</strong>.</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-amber-400 font-black">3.</span>
@@ -825,7 +872,7 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
               <p className="text-cyan-400 font-bold uppercase mb-1">Cálculo de Latencia Adaptativa</p>
               <p>Tiempo de exposición: <span className="text-white font-bold">{nodeDisplayInterval}ms</span></p>
               <p>Modo Desafío Hinchado: <span className="text-white font-bold">{round >= 5 ? 'ACTIVO (Fog de Retención)' : 'DESACTIVADO'}</span></p>
-              <p>Rotación Máxima: <span className="text-white font-bold">{round >= 3 ? '20 Grados' : '0'}</span></p>
+              <p>Rotación Máxima: <span className="text-white font-bold">{round >= 3 ? `${isMobile ? 10 : 20} Grados` : '0'}</span></p>
             </div>
           </div>
 

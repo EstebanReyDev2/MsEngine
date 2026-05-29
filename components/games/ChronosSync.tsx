@@ -8,6 +8,8 @@ import {
   Cpu, Sparkles, Activity, Brain, RotateCcw, 
   ArrowLeft, Check, AlertCircle, Play, Sliders, ChevronRight
 } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useHaptic } from '@/hooks/use-haptic';
 
 interface ChronosSyncProps {
   onBack: () => void;
@@ -30,6 +32,8 @@ interface Decision {
 }
 
 export default function ChronosSync({ onBack, currentUser, onRefreshUser }: ChronosSyncProps) {
+  const isMobile = useIsMobile();
+  const haptic = useHaptic();
   // Configs
   const [nValue, setNValue] = useState(1);
   const [customInterval, setCustomInterval] = useState(2500); // ms
@@ -126,10 +130,12 @@ export default function ChronosSync({ onBack, currentUser, onRefreshUser }: Chro
     });
 
     playTactileBeep(680);
+    haptic.light();
 
     // Instant tactile UI edge warning glow
     const isCorrectMatch = currentIndex >= nValue && sequence[currentIndex - nValue]?.position === sequence[currentIndex]?.position;
     setFeedback(isCorrectMatch ? 'success' : 'failure');
+    if (isCorrectMatch) haptic.success(); else haptic.error();
     setTimeout(() => setFeedback(null), 250);
   }, [gameState, currentIndex, userDecisions, nValue, sequence]);
 
@@ -148,10 +154,12 @@ export default function ChronosSync({ onBack, currentUser, onRefreshUser }: Chro
     });
 
     playTactileBeep(840);
+    haptic.light();
 
     // Instant tactile UI edge warning glow
     const isCorrectMatch = currentIndex >= nValue && sequence[currentIndex - nValue]?.audioIndex === sequence[currentIndex]?.audioIndex;
     setFeedback(isCorrectMatch ? 'success' : 'failure');
+    if (isCorrectMatch) haptic.success(); else haptic.error();
     setTimeout(() => setFeedback(null), 250);
   }, [gameState, currentIndex, userDecisions, nValue, sequence]);
 
@@ -348,7 +356,7 @@ export default function ChronosSync({ onBack, currentUser, onRefreshUser }: Chro
   };
 
   return (
-    <div className="min-h-screen bg-black text-zinc-100 flex flex-col justify-between p-6 transition-all relative overflow-hidden select-none font-sans">
+    <div className="game-area min-h-screen bg-black text-zinc-100 flex flex-col justify-between p-6 transition-all relative overflow-hidden select-none font-sans">
       
       {/* 🔮 Active Feedback Glow Layers */}
       <AnimatePresence>
@@ -377,10 +385,10 @@ export default function ChronosSync({ onBack, currentUser, onRefreshUser }: Chro
       <header className="flex justify-between items-center border-b border-zinc-850 pb-4 relative z-10">
         <button 
           onClick={onBack}
-          className="group text-xs text-zinc-500 hover:text-white flex items-center gap-1.5 font-mono cursor-pointer transition-colors"
+          className="group text-xs text-zinc-500 hover:text-white flex items-center gap-1.5 font-mono cursor-pointer transition-colors min-h-[44px] min-w-[44px]"
         >
           <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
-          <span>[SANTUARIO_VOLVER]</span>
+          <span className="hidden md:inline">[SANTUARIO_VOLVER]</span>
         </button>
 
         <div className="flex items-center gap-3">
@@ -569,19 +577,24 @@ export default function ChronosSync({ onBack, currentUser, onRefreshUser }: Chro
               </div>
             )}
 
-            {/* PLAYING GRID MATRIX */}
+            {/* PLAYING GRID MATRIX - MOBILE OPTIMIZED */}
             {gameState === 'playing' && (
-              <div className="grow flex items-center justify-center">
-                <div className="grid grid-cols-3 gap-3 w-72 h-72">
+              <div className="grow flex items-center justify-center game-area-precise">
+                <div className={`grid grid-cols-3 ${isMobile ? 'gap-4 w-full max-w-[320px]' : 'gap-3 w-72 h-72'}`}>
                   {Array.from({ length: 9 }).map((_, idx) => {
                     const isLit = activeCell === idx;
                     return (
                       <div 
                         key={idx}
                         className={`relative aspect-square border border-zinc-800 bg-black flex items-center justify-center transition-all ${isLit ? 'border-cyan-400 shadow-[0_0_12px_rgba(34,211,238,0.25)]' : ''}`}
+                        style={{ touchAction: 'none' }}
                       >
-                        {/* Holloway circle node indicator */}
-                        <div className={`w-3.5 h-3.5 rounded-full border transition-all ${isLit ? 'border-cyan-400 bg-cyan-400 scale-125 shadow-[0_0_8px_rgba(34,211,238,0.8)]' : 'border-zinc-850'}`} />
+                        {/* Holloway circle node indicator - 44px mínimo en mobile */}
+                        <div className={`${isMobile ? 'w-11 h-11' : 'w-3.5 h-3.5'} rounded-full border transition-all flex items-center justify-center ${isLit ? 'border-cyan-400 bg-cyan-400 scale-125 shadow-[0_0_8px_rgba(34,211,238,0.8)]' : 'border-zinc-850'}`}>
+                          {isLit && isMobile && (
+                            <div className="w-3 h-3 rounded-full bg-cyan-300 animate-ping" />
+                          )}
+                        </div>
 
                         {/* Neon Cyan expansion wave on trigger */}
                         <AnimatePresence>
@@ -677,34 +690,38 @@ export default function ChronosSync({ onBack, currentUser, onRefreshUser }: Chro
           {gameState === 'playing' && (
             <div className="w-full max-w-[420px] grid grid-cols-2 gap-4 mt-6">
               
-              {/* POSITION TRIGGER */}
+              {/* POSITION TRIGGER - MOBILE OPTIMIZED */}
               <button
                 onClick={handlePositionMatchInput}
-                className={`border-2 p-4 flex flex-col items-center justify-center transition-all cursor-pointer relative font-mono ${
+                onTouchEnd={(e) => { e.preventDefault(); handlePositionMatchInput(); }}
+                className={`border-2 p-4 flex flex-col items-center justify-center transition-all cursor-pointer relative font-mono min-h-[60px] ${
                   userDecisions[currentIndex]?.position 
                     ? 'bg-cyan-500 border-cyan-400 text-black font-black shadow-[0_0_10px_rgba(6,182,212,0.3)]' 
                     : 'bg-zinc-950 border-zinc-850 text-zinc-300 hover:text-white hover:border-zinc-500'
                 }`}
+                style={{ touchAction: 'manipulation' }}
               >
                 <div className="text-[10px] text-zinc-500 uppercase font-normal tracking-wide leading-none mb-1">TECLA [A]</div>
-                <div className="text-sm font-extrabold tracking-tight uppercase">Coincidencia Visual</div>
+                <div className={`${isMobile ? 'text-xs' : 'text-sm'} font-extrabold tracking-tight uppercase`}>Coincidencia Visual</div>
                 
                 <div className="absolute top-1.5 right-2 text-[8px] bg-zinc-900 px-1 py-0.5 text-zinc-500 border border-zinc-800">
                   POSICIÓN
                 </div>
               </button>
 
-              {/* AUDIO TRIGGER */}
+              {/* AUDIO TRIGGER - MOBILE OPTIMIZED */}
               <button
                 onClick={handleAudioMatchInput}
-                className={`border-2 p-4 flex flex-col items-center justify-center transition-all cursor-pointer relative font-mono ${
+                onTouchEnd={(e) => { e.preventDefault(); handleAudioMatchInput(); }}
+                className={`border-2 p-4 flex flex-col items-center justify-center transition-all cursor-pointer relative font-mono min-h-[60px] ${
                   userDecisions[currentIndex]?.audio 
                     ? 'bg-[#FF5028] border-[#FF5028] text-white font-black shadow-[0_0_10px_rgba(255,80,40,0.3)]' 
                     : 'bg-zinc-950 border-zinc-850 text-zinc-300 hover:text-white hover:border-zinc-500'
                 }`}
+                style={{ touchAction: 'manipulation' }}
               >
                 <div className="text-[10px] text-zinc-500 uppercase font-normal tracking-wide leading-none mb-1">TECLA [L]</div>
-                <div className="text-sm font-extrabold tracking-tight uppercase">Coincidencia Auditiva</div>
+                <div className={`${isMobile ? 'text-xs' : 'text-sm'} font-extrabold tracking-tight uppercase`}>Coincidencia Auditiva</div>
 
                 <div className="absolute top-1.5 right-2 text-[8px] bg-zinc-900 px-1 py-0.5 text-zinc-500 border border-zinc-800">
                   FIRMA SONIDO

@@ -9,6 +9,8 @@ import {
   XCircle, Zap, RefreshCw, Terminal, Eye, ShieldAlert, Cpu
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useHaptic } from '@/hooks/use-haptic';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Radial sector offsets for 8 directions on the UFCV wheel
 const SECTORS = [
@@ -37,6 +39,8 @@ interface NetworkResult {
 }
 
 export default function NeuralHorizon({ onBack, currentUser, onRefreshUser }: { onBack: () => void, currentUser: any, onRefreshUser: () => void }) {
+  const haptic = useHaptic();
+  const isMobile = useIsMobile();
   // Configured constants
   const GRID_ROWS = 15;
   const GRID_COLS = 20;
@@ -153,6 +157,7 @@ export default function NeuralHorizon({ onBack, currentUser, onRefreshUser }: { 
   const submitCenterAnswer = (selected: 'triangle' | 'rhombus') => {
     setUserSelectedCenter(selected);
     playSound(450, 'sine', 0.05);
+    haptic.light();
     setGameState('answer_periph');
   };
 
@@ -174,6 +179,7 @@ export default function NeuralHorizon({ onBack, currentUser, onRefreshUser }: { 
     let roundDeltaPoints = 0;
 
     if (allCorrect) {
+      haptic.success();
       // Points inversely proportional to speed, multiplied by level exposure complexity
       const speedBonus = Math.max(10, Math.floor((1500 - rt) / 50));
       const exposureMultiplier = Math.max(1, Math.floor((600 - exposureMs) / 100));
@@ -205,6 +211,7 @@ export default function NeuralHorizon({ onBack, currentUser, onRefreshUser }: { 
 
       // Buzz mistake audio tone
       playSound(120, 'sawtooth', 0.4);
+      haptic.error();
 
       // Relax exposure dynamic speed on mistake to assist brain loop
       setExposureMs(prev => Math.min(800, Math.round(prev * 1.3)));
@@ -260,14 +267,14 @@ export default function NeuralHorizon({ onBack, currentUser, onRefreshUser }: { 
   }, []);
 
   return (
-    <div id="neural-horizon-root" className="w-full max-w-[1050px] mx-auto bg-zinc-950 text-zinc-100 border-4 border-zinc-900 p-4 md:p-6 select-none font-sans overflow-hidden relative">
+    <div id="neural-horizon-root" className="game-area w-full max-w-[1050px] mx-auto bg-zinc-950 text-zinc-100 border-4 border-zinc-900 p-4 md:p-6 select-none font-sans overflow-hidden relative">
       
       {/* 🚀 Header HUD display */}
       <div className="relative z-10 flex flex-col md:flex-row justify-between items-stretch gap-4 pb-4 border-b border-zinc-800 mb-6">
         <div className="flex items-center gap-3">
           <button 
             onClick={onBack}
-            className="p-2 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-white transition-all cursor-pointer rounded-none bg-zinc-900/50"
+            className="p-2 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-white transition-all cursor-pointer rounded-none bg-zinc-900/50 min-w-[44px] min-h-[44px] flex items-center justify-center"
             title="Volver "
             id="neural-back-btn"
           >
@@ -476,14 +483,18 @@ export default function NeuralHorizon({ onBack, currentUser, onRefreshUser }: { 
                     {/* Triangle option button */}
                     <button 
                       onClick={() => submitCenterAnswer('triangle')}
-                      className="w-12 h-12 border border-zinc-800 hover:border-cyan-400 bg-zinc-900/40 text-cyan-400 hover:bg-zinc-900 cursor-pointer flex items-center justify-center"
+                      onTouchEnd={(e) => { e.preventDefault(); submitCenterAnswer('triangle'); }}
+                      className="min-w-[44px] min-h-[44px] md:w-12 md:h-12 border border-zinc-800 hover:border-cyan-400 bg-zinc-900/40 text-cyan-400 hover:bg-zinc-900 cursor-pointer flex items-center justify-center"
+                      style={{ touchAction: 'manipulation' }}
                     >
                       <div className="w-5 h-5 border-b-2 border-r-2 border-cyan-400 rotate-45 transform" />
                     </button>
                     {/* Rhombus option button */}
                     <button 
                       onClick={() => submitCenterAnswer('rhombus')}
-                      className="w-12 h-12 border border-zinc-800 hover:border-cyan-400 bg-zinc-900/40 text-cyan-400 hover:bg-zinc-900 cursor-pointer flex items-center justify-center"
+                      onTouchEnd={(e) => { e.preventDefault(); submitCenterAnswer('rhombus'); }}
+                      className="min-w-[44px] min-h-[44px] md:w-12 md:h-12 border border-zinc-800 hover:border-cyan-400 bg-zinc-900/40 text-cyan-400 hover:bg-zinc-900 cursor-pointer flex items-center justify-center"
+                      style={{ touchAction: 'manipulation' }}
                     >
                       <div className="w-4 h-4 border-2 border-cyan-400 rotate-45 transform" />
                     </button>
@@ -552,8 +563,10 @@ export default function NeuralHorizon({ onBack, currentUser, onRefreshUser }: { 
                   {isAnsweringPeriph && (
                     <button 
                       onClick={() => submitPeriphAnswer(idx)}
-                      className="w-14 h-14 rounded-full border border-emerald-500/20 hover:border-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/20 text-white font-mono text-xs font-black cursor-pointer shadow-lg shadow-emerald-500/5 hover:scale-105 transition-all flex items-center justify-center animate-pulse"
+                      onTouchEnd={(e) => { e.preventDefault(); submitPeriphAnswer(idx); }}
+                      className="min-w-[44px] min-h-[44px] md:w-14 md:h-14 rounded-full border border-emerald-500/20 hover:border-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/20 text-white font-mono text-[11px] md:text-xs font-black cursor-pointer shadow-lg shadow-emerald-500/5 hover:scale-105 transition-all flex items-center justify-center animate-pulse"
                       title={`Vincular a sector ${sec.name}`}
+                      style={{ touchAction: 'manipulation' }}
                     >
                       {sec.name}
                     </button>

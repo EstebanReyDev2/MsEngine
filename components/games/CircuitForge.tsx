@@ -1,9 +1,12 @@
 // 📂 /components/games/CircuitForge.tsx
+// MOBILE-OPTIMIZED: touch targets ≥ 44px, haptic feedback, touch-action
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { ArrowLeft, Volume2, VolumeX, CheckCircle2 } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useHaptic } from '@/hooks/use-haptic';
 
 interface CircuitForgeProps {
   onBack: () => void;
@@ -39,6 +42,9 @@ interface Zone {
 }
 
 export default function CircuitForge({ onBack, currentUser, onRefreshUser }: CircuitForgeProps) {
+  const isMobile = useIsMobile();
+  const haptic = useHaptic();
+
   // Initialize level
   const [nodes, setNodes] = useState<Node[]>(() => [
     { id: 0, x: 100, y: 100, color: 'empty', isFixed: false },
@@ -88,8 +94,9 @@ export default function CircuitForge({ onBack, currentUser, onRefreshUser }: Cir
     if (adjErrors.length === 0 && zoneStatus.every(isMet => isMet) && newNodes.every(n => n.color !== 'empty')) {
       setGameState('success');
       playSynthesizerTone(660, 'sine', 0.2);
+      haptic.success();
     }
-  }, [connections, zones, playSynthesizerTone]);
+  }, [connections, zones, playSynthesizerTone, haptic]);
 
   const handleNodeClick = (id: number) => {
     if (gameState === 'success') return;
@@ -99,6 +106,7 @@ export default function CircuitForge({ onBack, currentUser, onRefreshUser }: Cir
         if (node.id === id && !node.isFixed) {
           const nextColor = COLORS[(COLORS.indexOf(node.color) + 1) % COLORS.length];
           playSynthesizerTone(node.color === 'empty' ? 440 : 550, 'sine', 0.1);
+          haptic.light();
           return { ...node, color: nextColor };
         }
         return node;
@@ -116,16 +124,21 @@ export default function CircuitForge({ onBack, currentUser, onRefreshUser }: Cir
     });
   }, [nodes, connections]);
 
+  // Tamaños adaptativos
+  const nodeRadius = isMobile ? 32 : 25;
+  const hitAreaRadius = Math.max(nodeRadius, 28);
+  const strokeWidth = isMobile ? 4 : 2;
+
   return (
-    <div className="min-h-screen bg-neutral-950 text-white p-6 flex flex-col font-mono">
+    <div className="game-area min-h-screen bg-neutral-950 text-white p-6 flex flex-col font-mono">
       <header className="flex justify-between items-center mb-8">
-        <button onClick={onBack} className="text-neutral-500 hover:text-white flex items-center gap-2"><ArrowLeft size={16} /> [BACK]</button>
+        <button onClick={onBack} className="text-neutral-500 hover:text-white flex items-center gap-2 min-h-[44px] min-w-[44px]"><ArrowLeft size={16} /> <span className="hidden md:inline">[BACK]</span></button>
         <h1 className="text-2xl font-black uppercase text-cyan-400">Circuit Forge</h1>
-        <button onClick={() => setSoundEnabled(!soundEnabled)}>{soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}</button>
+        <button onClick={() => setSoundEnabled(!soundEnabled)} className="min-h-[44px] min-w-[44px] flex items-center justify-center">{soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}</button>
       </header>
 
       <div className="grow flex items-center justify-center relative">
-        <svg viewBox="0 0 500 400" className="w-full max-w-2xl">
+        <svg viewBox="0 0 500 400" className="w-full max-w-2xl game-area-precise" style={{ touchAction: 'none' }}>
           {connections.map((conn, i) => {
             const A = nodes.find(n => n.id === conn.from);
             const B = nodes.find(n => n.id === conn.to);
@@ -133,22 +146,33 @@ export default function CircuitForge({ onBack, currentUser, onRefreshUser }: Cir
             return A && B && <line key={i} x1={A.x} y1={A.y} x2={B.x} y2={B.y} className={hasError ? 'stroke-rose-600 stroke-[5px]' : 'stroke-neutral-700 stroke-[2px]'} />;
           })}
           {nodes.map(node => (
-            <motion.circle 
-              key={node.id} cx={node.x} cy={node.y} r={25}
-              onClick={() => handleNodeClick(node.id)}
-              className={`cursor-pointer transition-colors duration-300 ${node.isFixed ? 'stroke-neutral-500 stroke-[4px]' : 'stroke-white stroke-[2px]'}`}
-              style={{ fill: HEX[node.color] }}
-              whileHover={{ scale: 1.1 }}
-            />
+            <g key={node.id} style={{ touchAction: 'none', cursor: 'pointer' }}>
+              {/* Hit area invisible para fat finger tolerance */}
+              <circle 
+                cx={node.x} cy={node.y} r={hitAreaRadius} 
+                fill="transparent"
+                onClick={() => handleNodeClick(node.id)}
+                onTouchEnd={(e) => { e.preventDefault(); handleNodeClick(node.id); }}
+              />
+              <motion.circle 
+                cx={node.x} cy={node.y} r={nodeRadius}
+                onClick={() => handleNodeClick(node.id)}
+                onTouchEnd={(e) => { e.preventDefault(); handleNodeClick(node.id); }}
+                className={`cursor-pointer transition-colors duration-300 ${node.isFixed ? 'stroke-neutral-500 stroke-[4px]' : 'stroke-white stroke-[3px]'}`}
+                style={{ fill: HEX[node.color] }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+              />
+            </g>
           ))}
         </svg>
 
         {gameState === 'success' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm z-50">
-            <div className="text-center">
+            <div className="text-center p-6">
               <CheckCircle2 size={64} className="text-emerald-400 mx-auto mb-4" />
               <h2 className="text-3xl font-bold uppercase">Circuit Validated</h2>
-              <button className="mt-6 bg-cyan-600 px-6 py-2 rounded uppercase font-bold" onClick={onBack}>Complete</button>
+              <button className="mt-6 bg-cyan-600 px-6 py-3 rounded uppercase font-bold min-h-[48px] cursor-pointer" onClick={onBack}>Complete</button>
             </div>
           </motion.div>
         )}

@@ -9,6 +9,8 @@ import {
   XCircle, Zap, RefreshCw, Layers
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useHaptic } from '@/hooks/use-haptic';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Types
 interface Train {
@@ -96,6 +98,8 @@ function generateFloatingTextId(): string {
 }
 
 export default function TrainOfThought({ onBack, currentUser, onRefreshUser }: TrainOfThoughtProps) {
+  const haptic = useHaptic();
+  const isMobile = useIsMobile();
   // Game state
   const [gameState, setGameState] = useState<'lobby' | 'playing' | 'paused' | 'gameover'>('lobby');
   const [secondsLeft, setSecondsLeft] = useState<number>(90);
@@ -209,6 +213,7 @@ export default function TrainOfThought({ onBack, currentUser, onRefreshUser }: T
     
     // Play clicking tech chime
     playSound(400 + (nextVal * 150), 'square', 0.05);
+    haptic.light();
   };
 
   // Start the actual game run
@@ -448,7 +453,7 @@ export default function TrainOfThought({ onBack, currentUser, onRefreshUser }: T
   };
 
   return (
-    <div id="train-of-thought-root" className="w-full max-w-[1000px] mx-auto bg-[#1A1A1A] text-[#F3F2EE] border-4 border-[#1A1A1A] p-4 md:p-6 select-none font-sans overflow-hidden relative">
+    <div id="train-of-thought-root" className="game-area w-full max-w-[1000px] mx-auto bg-[#1A1A1A] text-[#F3F2EE] border-4 border-[#1A1A1A] p-4 md:p-6 select-none font-sans overflow-hidden relative">
       <div className="absolute inset-0 bg-[#141414] opacity-40 pointer-events-none" />
       
       {/* 🚀 Header HUD display */}
@@ -456,7 +461,7 @@ export default function TrainOfThought({ onBack, currentUser, onRefreshUser }: T
         <div className="flex items-center gap-3">
           <button 
             onClick={onBack}
-            className="p-2 border border-white/10 hover:border-white/30 text-white/70 hover:text-white transition-all cursor-pointer rounded-none bg-white/5"
+            className="p-2 border border-white/10 hover:border-white/30 text-white/70 hover:text-white transition-all cursor-pointer rounded-none bg-white/5 min-w-[44px] min-h-[44px] flex items-center justify-center"
             title="Volver a la selección"
             id="back-to-practice-btn"
           >
@@ -742,15 +747,19 @@ export default function TrainOfThought({ onBack, currentUser, onRefreshUser }: T
                 <text x="400" y="25" textAnchor="middle" fill="#F3F2EE" fontSize="8" fontFamily="monospace" fontWeight="bold">SPAWNER</text>
               </g>
 
-              {/* 🎛️ Clickable Switch Nodes overlays */}
+              {/* 🎛️ Clickable Switch Nodes overlays - MOBILE OPTIMIZED */}
               <g id="switches-group">
                 {/* Switch A */}
                 <g 
                   transform={`translate(${nodes.A.x}, ${nodes.A.y})`} 
                   onClick={() => toggleSwitch('A')}
+                  onTouchEnd={(e) => { e.preventDefault(); toggleSwitch('A'); }}
                   className="cursor-pointer group select-none"
                   id="switch-a-group"
+                  style={{ touchAction: 'none' }}
                 >
+                  {/* Hit area invisible extra grande para fat finger */}
+                  <circle r={isMobile ? 30 : 22} fill="transparent" />
                   <circle r="22" fill="#1A1A1A" stroke={switches.A === 1 ? '#00A3FF' : '#ffffff'} strokeWidth="3" className="group-hover:stroke-[#FF5028] transition-colors duration-200" />
                   <circle r="2" fill="#fff" />
                   
@@ -768,9 +777,12 @@ export default function TrainOfThought({ onBack, currentUser, onRefreshUser }: T
                 <g 
                   transform={`translate(${nodes.B.x}, ${nodes.B.y})`} 
                   onClick={() => toggleSwitch('B')}
+                  onTouchEnd={(e) => { e.preventDefault(); toggleSwitch('B'); }}
                   className="cursor-pointer group select-none"
                   id="switch-b-group"
+                  style={{ touchAction: 'none' }}
                 >
+                  <circle r={isMobile ? 30 : 22} fill="transparent" />
                   <circle r="22" fill="#1A1A1A" stroke="#00A3FF" strokeWidth="3" className="group-hover:stroke-[#FF5028] transition-colors duration-200" />
                   <circle r="2" fill="#fff" />
                   
@@ -787,9 +799,12 @@ export default function TrainOfThought({ onBack, currentUser, onRefreshUser }: T
                 <g 
                   transform={`translate(${nodes.C.x}, ${nodes.C.y})`} 
                   onClick={() => toggleSwitch('C')}
+                  onTouchEnd={(e) => { e.preventDefault(); toggleSwitch('C'); }}
                   className="cursor-pointer group select-none"
                   id="switch-c-group"
+                  style={{ touchAction: 'none' }}
                 >
+                  <circle r={isMobile ? 30 : 22} fill="transparent" />
                   <circle r="22" fill="#1A1A1A" stroke="#00A3FF" strokeWidth="3" className="group-hover:stroke-[#FF5028] transition-colors duration-200" />
                   <circle r="2" fill="#fff" />
                   

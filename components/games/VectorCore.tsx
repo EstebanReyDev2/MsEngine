@@ -3,6 +3,8 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useHaptic } from '@/hooks/use-haptic';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { supabaseClient } from '@/lib/supabaseClient';
 import { 
   Cpu, Sparkles, Activity, Brain, RotateCcw, 
@@ -23,6 +25,8 @@ interface FlankerTrial {
 }
 
 export default function VectorCore({ onBack, currentUser, onRefreshUser }: VectorCoreProps) {
+  const haptic = useHaptic();
+  const isMobile = useIsMobile();
   // Configs and preferences
   const [level, setLevel] = useState(1);
   const [metronomeActive, setMetronomeActive] = useState(true);
@@ -177,10 +181,12 @@ export default function VectorCore({ onBack, currentUser, onRefreshUser }: Vecto
       const speedBonus = Math.max(0, Math.round((trialResponseWindowMs - rt) / 5));
       setScore(s => s + 100 + speedBonus);
       setFeedback('success');
+      haptic.success();
       playSynthesizerTone(1020, 'sine', 0.15);
     } else {
       setStreak(0);
       setFeedback('failure');
+      haptic.error();
       playSynthesizerTone(210, 'triangle', 0.25);
     }
 
@@ -379,7 +385,7 @@ export default function VectorCore({ onBack, currentUser, onRefreshUser }: Vecto
   }, [currentIndex, trials]);
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-zinc-100 flex flex-col justify-between p-6 relative overflow-hidden select-none font-sans">
+    <div className="game-area min-h-screen bg-neutral-950 text-zinc-100 flex flex-col justify-between p-6 relative overflow-hidden select-none font-sans">
       
       {/* 🔮 Active Peripheral Alert Frame overlay */}
       <AnimatePresence>
@@ -424,13 +430,13 @@ export default function VectorCore({ onBack, currentUser, onRefreshUser }: Vecto
 
       {/* System Command Header */}
       <header className="flex justify-between items-center border-b border-neutral-800 pb-4 relative z-10">
-        <button 
-          onClick={onBack}
-          className="group text-xs text-neutral-500 hover:text-white flex items-center gap-1.5 font-mono cursor-pointer transition-colors"
-        >
-          <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
-          <span>[SANTUARIO_MS]</span>
-        </button>
+          <button 
+            onClick={onBack}
+            className="group text-xs text-neutral-500 hover:text-white flex items-center gap-1.5 font-mono cursor-pointer transition-colors min-h-[44px] min-w-[44px]"
+          >
+            <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
+            <span className="hidden md:inline">[SANTUARIO_MS]</span>
+          </button>
 
         <div className="flex items-center gap-4">
           {/* Sound settings shortcuts */}
@@ -792,7 +798,9 @@ export default function VectorCore({ onBack, currentUser, onRefreshUser }: Vecto
               {/* LEFT CLICK SECTOR */}
               <button
                 onClick={() => handlePlayerDecision('left')}
-                className="border border-neutral-800 bg-neutral-950 p-4 hover:border-cyan-500 hover:text-white transition-all text-neutral-400 flex flex-col items-center justify-center font-mono cursor-pointer relative"
+                onTouchEnd={(e) => { e.preventDefault(); handlePlayerDecision('left'); }}
+                className="border border-neutral-800 bg-neutral-950 p-4 hover:border-cyan-500 hover:text-white transition-all text-neutral-400 flex flex-col items-center justify-center font-mono cursor-pointer relative min-h-[64px]"
+                style={{ touchAction: 'manipulation' }}
               >
                 <div className="text-[9px] text-neutral-600 uppercase font-normal mb-1">Sector Izquierdo</div>
                 <div className="text-base font-extrabold tracking-tight flex items-center gap-1">
@@ -804,7 +812,9 @@ export default function VectorCore({ onBack, currentUser, onRefreshUser }: Vecto
               {/* RIGHT CLICK SECTOR */}
               <button
                 onClick={() => handlePlayerDecision('right')}
-                className="border border-neutral-800 bg-neutral-950 p-4 hover:border-cyan-500 hover:text-white transition-all text-neutral-400 flex flex-col items-center justify-center font-mono cursor-pointer relative"
+                onTouchEnd={(e) => { e.preventDefault(); handlePlayerDecision('right'); }}
+                className="border border-neutral-800 bg-neutral-950 p-4 hover:border-cyan-500 hover:text-white transition-all text-neutral-400 flex flex-col items-center justify-center font-mono cursor-pointer relative min-h-[64px]"
+                style={{ touchAction: 'manipulation' }}
               >
                 <div className="text-[9px] text-neutral-600 uppercase font-normal mb-1">Sector Derecho</div>
                 <div className="text-base font-extrabold tracking-tight flex items-center gap-1">

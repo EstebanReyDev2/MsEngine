@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { supabaseClient } from '@/lib/supabaseClient';
+import { useHaptic } from '@/hooks/use-haptic';
 
 interface PatternRecallProps {
   onBack: () => void;
@@ -11,6 +12,7 @@ interface PatternRecallProps {
 }
 
 export default function PatternRecall({ onBack, currentUser, onRefreshUser }: PatternRecallProps) {
+  const haptic = useHaptic();
   const [level, setLevel] = useState(1);
   const [round, setRound] = useState(1); // 1 to 5 rounds per level
   const [gameState, setGameState] = useState<'preview' | 'playing' | 'paused' | 'success' | 'failed' | 'gameover'>('preview');
@@ -161,16 +163,19 @@ export default function PatternRecall({ onBack, currentUser, onRefreshUser }: Pa
       const nextSelection = [...userSelection, index];
       setUserSelection(nextSelection);
       playBeep(523.25 + (nextSelection.length * 40), 'sine', 0.1);
+      haptic.light();
 
       // Check if finished pattern
       if (nextSelection.length === pattern.length) {
         // Correct round!
         setScore(prev => prev + (pattern.length * 20) + secondsLeft * 5);
+        haptic.success();
         handleRoundEnded(true);
       }
     } else {
       // Incorrect cell clicked
       playBeep(180, 'square', 0.4);
+      haptic.error();
       handleRoundEnded(false);
     }
   };
@@ -186,7 +191,7 @@ export default function PatternRecall({ onBack, currentUser, onRefreshUser }: Pa
   const strokeDashoffset = 282.6 - (282.6 * secondsLeft) / 12;
 
   return (
-    <div className="flex flex-col min-h-screen text-on-surface bg-background max-w-lg mx-auto w-full px-5 py-6 font-sans">
+    <div className="game-area flex flex-col min-h-screen text-on-surface bg-background max-w-lg mx-auto w-full px-5 py-6 font-sans">
       
       {/* 🧭 Header */}
       <header className="flex flex-col gap-4 py-4">
@@ -194,7 +199,7 @@ export default function PatternRecall({ onBack, currentUser, onRefreshUser }: Pa
           <button 
             id="btn-recall-back"
             onClick={onBack}
-            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors text-primary active:scale-95 border border-hairline bg-surface"
+            className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors text-primary active:scale-95 border border-hairline bg-surface min-w-[44px] min-h-[44px]"
           >
             <span className="text-xl">←</span>
           </button>
@@ -273,13 +278,17 @@ export default function PatternRecall({ onBack, currentUser, onRefreshUser }: Pa
             <div className="flex flex-col gap-3">
               <button
                 onClick={handleRestart}
-                className="w-full py-3 bg-primary text-on-primary rounded-full font-bold text-sm shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer"
+                onTouchEnd={(e) => { e.preventDefault(); handleRestart(); }}
+                className="w-full py-3 bg-primary text-on-primary rounded-full font-bold text-sm shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer min-h-[48px]"
+                style={{ touchAction: 'manipulation' }}
               >
                 Volver a Entrenar
               </button>
               <button
                 onClick={onBack}
-                className="w-full py-3 border border-hairline hover:bg-surface-soft text-ink rounded-full font-bold text-sm transition-all active:scale-95 cursor-pointer"
+                onTouchEnd={(e) => { e.preventDefault(); onBack(); }}
+                className="w-full py-3 border border-hairline hover:bg-surface-soft text-ink rounded-full font-bold text-sm transition-all active:scale-95 cursor-pointer min-h-[48px]"
+                style={{ touchAction: 'manipulation' }}
               >
                 Volver al Santuario
               </button>

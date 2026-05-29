@@ -20,6 +20,52 @@ body {
   font-family: 'Helvetica Neue', Arial, sans-serif;
 }
 
+/* ════════════════════════════════════════════
+   MOBILE TOUCH OPTIMIZATION
+   ════════════════════════════════════════════ */
+
+/* Previene scroll y zoom accidental durante gameplay */
+.game-area {
+  touch-action: manipulation;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: auto;
+  /* Elimina el highlight azul de tap en iOS/Safari */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Para zonas SVG/Canvas donde necesitamos control total del gesto */
+.game-area-precise {
+  touch-action: none;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Hit area expandido invisible para touch targets chicos */
+.touch-target-expand::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+
+/* Elimina delay de 300ms en taps */
+* {
+  touch-action: manipulation;
+}
+
+/* Mejora la legibilidad de textos pequeños en mobile */
+@media (max-width: 767px) {
+  .game-text-mobile-sm {
+    font-size: 9px !important;
+  }
+  .game-text-mobile-xs {
+    font-size: 8px !important;
+  }
+}
+
+/* ════════════════════════════════════════════
+   FIN - MOBILE TOUCH OPTIMIZATION
+   ════════════════════════════════════════════ */
+
 /* Stark Brutalist Card Helpers */
 .brutalist-border {
   border: 1px solid #1A1A1A !important;

@@ -9,6 +9,8 @@ import {
   XCircle, Zap, RefreshCw, Layers, Coffee, Flame, CupSoda, Snowflake
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useHaptic } from '@/hooks/use-haptic';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Types
 interface ActiveOrder {
@@ -133,6 +135,8 @@ function generateStationParticles(stationX: number, stationY: number, color: str
 }
 
 export default function CafeExpreso({ onBack, currentUser, onRefreshUser }: CafeExpresoProps) {
+  const haptic = useHaptic();
+  const isMobile = useIsMobile();
   // Game state
   const [gameState, setGameState] = useState<'lobby' | 'playing' | 'paused' | 'gameover'>('lobby');
   const [secondsLeft, setSecondsLeft] = useState<number>(90);
@@ -259,6 +263,7 @@ export default function CafeExpreso({ onBack, currentUser, onRefreshUser }: Cafe
   const endGame = (finalScore: number) => {
     setGameState('gameover');
     playSound(180, 'sawtooth', 0.5);
+    haptic.heavy();
 
     // Database push setup
     if (currentUser) {
@@ -286,6 +291,7 @@ export default function CafeExpreso({ onBack, currentUser, onRefreshUser }: Cafe
     }));
 
     playSound(380, 'square', 0.3);
+    haptic.medium();
   };
 
   // Select an ingredient jar to deposit on station click optionally
@@ -303,6 +309,7 @@ export default function CafeExpreso({ onBack, currentUser, onRefreshUser }: Cafe
 
     setSelectedIngredient(id);
     playSound(440, 'sine', 0.08);
+    haptic.light();
   };
 
   // Deposit ingredient directly inside a chosen prep station
@@ -397,6 +404,7 @@ export default function CafeExpreso({ onBack, currentUser, onRefreshUser }: Cafe
       };
     }));
 
+    haptic.medium();
     // Reset selected tracking pointer
     setSelectedIngredient(null);
   };
@@ -430,6 +438,7 @@ export default function CafeExpreso({ onBack, currentUser, onRefreshUser }: Cafe
       const bonusScore = Math.floor(15 + (order.timeLeft / order.maxTime) * 35); // faster is way better points!
       setScore(prev => prev + bonusScore);
       setCompletedOrders(prev => prev + 1);
+      haptic.success();
 
       // Chime combo victory audio
       playSound(523.25, 'triangle', 0.1);
@@ -554,6 +563,7 @@ export default function CafeExpreso({ onBack, currentUser, onRefreshUser }: Cafe
             setScore(scoreVal => Math.max(0, scoreVal - 15));
             expiredActive = true;
             playSound(120, 'sawtooth', 0.4); // mistake buzz noise
+            haptic.error();
 
             // Detach stations that worked on this expired order id
             setStations(stList => stList.map(st => {
@@ -614,20 +624,20 @@ export default function CafeExpreso({ onBack, currentUser, onRefreshUser }: Cafe
   const efficiency = totalPlacedCount > 0 ? Math.round((completedOrders / totalPlacedCount) * 100) : 100;
 
   return (
-    <div id="cafe-espresso-root" className="w-full max-w-[1050px] mx-auto bg-[#141414] text-[#F3F2EE] border-4 border-[#1A1A1A] p-4 md:p-6 select-none font-sans overflow-hidden relative">
+    <div id="cafe-espresso-root" className="game-area w-full max-w-[1050px] mx-auto bg-[#141414] text-[#F3F2EE] border-4 border-[#1A1A1A] p-4 md:p-6 select-none font-sans overflow-hidden relative">
       <div className="absolute inset-0 bg-stone-900/40 pointer-events-none" />
       
       {/* 📊 Top HUD Statistics & Control */}
       <div className="relative z-10 flex flex-col md:flex-row justify-between items-stretch gap-4 pb-4 border-b border-[#F3F2EE]/10 mb-5">
         <div className="flex items-center gap-3">
-          <button 
-            onClick={onBack}
-            className="p-2 border border-white/10 hover:border-white/30 text-white/70 hover:text-white transition-all cursor-pointer rounded-none bg-white/5"
-            title="Volver al Panel"
-            id="espresso-back-btn"
-          >
-            <ArrowLeft size={16} />
-          </button>
+            <button 
+              onClick={onBack}
+              className="p-2 border border-white/10 hover:border-white/30 text-white/70 hover:text-white transition-all cursor-pointer rounded-none bg-white/5 min-w-[44px] min-h-[44px] flex items-center justify-center"
+              title="Volver al Panel"
+              id="espresso-back-btn"
+            >
+              <ArrowLeft size={16} />
+            </button>
           <div>
             <span className="text-[10px] font-black uppercase tracking-[2px] text-[#FF5028] block">{"// DEPARTAMENTO COGNITIVO"}</span>
             <h1 className="text-xl font-bold font-mono text-white tracking-tight uppercase flex items-center gap-2">
@@ -884,11 +894,13 @@ export default function CafeExpreso({ onBack, currentUser, onRefreshUser }: Cafe
                   <div 
                     key={station.id}
                     onClick={() => handleDepositStation(station.id)}
-                    className={`border p-3 transition-colors relative flex flex-col justify-between min-h-[220px] cursor-pointer ${
+                    onTouchEnd={(e) => { e.preventDefault(); handleDepositStation(station.id); }}
+                    className={`border p-3 transition-colors relative flex flex-col justify-between min-h-[200px] md:min-h-[220px] cursor-pointer ${
                       isError ? 'bg-rose-950/50 border-rose-500 animate-shake' : 
                       selectedIngredient ? 'border-amber-500/50 hover:border-amber-500 bg-amber-500/5' : 
                       isAssigned ? 'border-[#00A3FF]/40 bg-zinc-900' : 'border-white/10 bg-black/20'
                     }`}
+                    style={{ touchAction: 'manipulation' }}
                   >
                     {/* Head Header nozzle */}
                     <div className="flex justify-between items-center pb-2 border-b border-white/10">
@@ -983,7 +995,12 @@ export default function CafeExpreso({ onBack, currentUser, onRefreshUser }: Cafe
                             e.stopPropagation();
                             handleServeOrder(station.id);
                           }}
-                          className="w-full py-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs uppercase cursor-pointer transition-all flex items-center justify-center gap-1 rounded-sm animate-pulse"
+                          onTouchEnd={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            handleServeOrder(station.id);
+                          }}
+                          className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs uppercase cursor-pointer transition-all flex items-center justify-center gap-1 rounded-sm animate-pulse min-h-[44px]"
                         >
                           <CupSoda size={12} />
                           <span>SERVIR TAZA</span>
@@ -1040,7 +1057,7 @@ export default function CafeExpreso({ onBack, currentUser, onRefreshUser }: Cafe
               <span className="text-[9px] text-white/40">Haz clic para seleccionar y luego toca una tartera para verter</span>
             </div>
 
-            <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
               {INGREDIENTS.map(ing => {
                 const state = inventory[ing.id] || { stock: 10, isRefilling: false, refillProgress: 0 };
                 const isSelected = selectedIngredient === ing.id;
@@ -1049,11 +1066,13 @@ export default function CafeExpreso({ onBack, currentUser, onRefreshUser }: Cafe
                   <div 
                     key={ing.id}
                     onClick={() => handleSelectJar(ing.id)}
-                    className={`border p-2.5 transition-all text-center relative cursor-pointer font-mono ${
+                    onTouchEnd={(e) => { e.preventDefault(); handleSelectJar(ing.id); }}
+                    className={`border p-2.5 transition-all text-center relative cursor-pointer font-mono min-h-[80px] md:min-h-0 ${
                       state.isRefilling ? 'border-amber-400/20 bg-zinc-900/40 text-stone-500' :
                       isSelected ? 'border-amber-400 bg-amber-400/10 text-white' :
                       state.stock <= 0 ? 'border-rose-500/30 bg-rose-950/10 text-rose-300' : 'border-white/10 hover:border-white/20 bg-black/40 text-stone-300'
                     }`}
+                    style={{ touchAction: 'manipulation' }}
                   >
                     {/* Inner progress meter when refilling */}
                     {state.isRefilling && (
@@ -1073,7 +1092,7 @@ export default function CafeExpreso({ onBack, currentUser, onRefreshUser }: Cafe
                       </span>
                     </div>
 
-                    <h5 className="text-[10px] font-bold text-white uppercase mb-1">{ing.label}</h5>
+                    <h5 className={`${isMobile ? 'text-[9px]' : 'text-[10px]'} font-bold text-white uppercase mb-1`}>{ing.label}</h5>
                     
                     {/* Stock level representation pills */}
                     <div className="flex gap-0.5 justify-center mt-2">
@@ -1092,7 +1111,12 @@ export default function CafeExpreso({ onBack, currentUser, onRefreshUser }: Cafe
                           e.stopPropagation();
                           triggerRefill(ing.id);
                         }}
-                        className="w-full py-0.5 bg-[#FF5028] hover:bg-white text-white hover:text-black font-black text-[8px] uppercase font-mono mt-2 cursor-pointer transition-colors"
+                        onTouchEnd={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          triggerRefill(ing.id);
+                        }}
+                        className="w-full py-1 bg-[#FF5028] hover:bg-white text-white hover:text-black font-black text-[8px] uppercase font-mono mt-2 cursor-pointer transition-colors min-h-[32px]"
                       >
                         RELLENAR
                       </button>

@@ -359,7 +359,6 @@ export default function EspectroCognitivo({ currentUser }: EspectroCognitivoProp
                     { id: 'Train of Thought', label: 'Train of Thought (Focus)' },
                     { id: 'Neural Horizon', label: 'Neural Horizon (Speed)' },
                     { id: 'Task Shifting', label: 'Task Shifting (Flex)' },
-                    { id: 'Neuro-Pulse', label: 'Neuro-Pulse (Speed)' },
                     { id: 'Café expreso', label: 'Café Expreso (Focus)' }
                   ].map((g) => (
                     <button

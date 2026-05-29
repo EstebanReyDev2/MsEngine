@@ -7,6 +7,7 @@ import { supabaseClient } from '@/lib/supabaseClient';
 import { 
   ArrowLeft, Volume2, VolumeX, Sparkles, AlertCircle, Check 
 } from 'lucide-react';
+import { useHaptic } from '@/hooks/use-haptic';
 
 interface LexiconCoreProps {
   onBack: () => void;
@@ -42,6 +43,7 @@ export default function LexiconCore({ onBack, currentUser, onRefreshUser }: Lexi
   const [timeLeft, setTimeLeft] = useState(15);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const audioCtxRef = useRef<AudioContext | null>(null);
+  const haptic = useHaptic();
 
   const playSound = useCallback((type: 'success' | 'failure' | 'switch') => {
     if (!soundEnabled || typeof window === 'undefined') return;
@@ -88,17 +90,19 @@ export default function LexiconCore({ onBack, currentUser, onRefreshUser }: Lexi
     setGameState('feedback');
     if (idx === currentSyllogism.correctIndex) {
       playSound('success');
+      haptic.success();
     } else {
       playSound('failure');
+      haptic.error();
     }
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-6 flex flex-col font-mono">
+    <div className="game-area min-h-screen bg-zinc-950 text-zinc-100 p-6 flex flex-col font-mono">
       <header className="flex justify-between items-center mb-8 border-b border-zinc-800 pb-4">
-        <button onClick={onBack} className="text-zinc-500 hover:text-white flex items-center gap-2"><ArrowLeft size={16} /> [BACK]</button>
+        <button onClick={onBack} className="text-zinc-500 hover:text-white flex items-center gap-2 min-h-[44px] min-w-[44px]"><ArrowLeft size={16} /> <span className="hidden md:inline">[BACK]</span></button>
         <h1 className="text-xl font-black uppercase text-cyan-400 tracking-widest">Lexicon Core</h1>
-        <button onClick={() => setSoundEnabled(!soundEnabled)}>{soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}</button>
+        <button onClick={() => setSoundEnabled(!soundEnabled)} className="min-h-[44px] min-w-[44px] flex items-center justify-center">{soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}</button>
       </header>
 
       <div className="grow max-w-2xl mx-auto w-full flex flex-col justify-center gap-8">
@@ -107,12 +111,14 @@ export default function LexiconCore({ onBack, currentUser, onRefreshUser }: Lexi
           <p className="text-cyan-400">Premisa 2: {currentSyllogism.p2}</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {currentSyllogism.options.map((opt, idx) => (
             <button 
               key={idx}
               onClick={() => handleSelect(idx)}
-              className={`p-4 border rounded hover:border-cyan-500 transition-colors text-left ${gameState !== 'playing' ? 'opacity-50' : ''}`}
+              onTouchEnd={(e) => { e.preventDefault(); handleSelect(idx); }}
+              className={`p-4 border rounded hover:border-cyan-500 transition-colors text-left min-h-[52px] cursor-pointer ${gameState !== 'playing' ? 'opacity-50 pointer-events-none' : ''}`}
+              style={{ touchAction: 'manipulation' }}
             >
               {opt}
             </button>

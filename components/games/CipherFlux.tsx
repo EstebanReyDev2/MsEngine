@@ -3,6 +3,8 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useHaptic } from '@/hooks/use-haptic';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { supabaseClient } from '@/lib/supabaseClient';
 import { 
   Cpu, RotateCcw, ArrowLeft, Volume2, VolumeX, Zap, 
@@ -44,6 +46,8 @@ const COLORS = [
 const SHAPES: ShapeType[] = ['circle', 'cross', 'diagonal-left', 'diagonal-right', 'dot-cluster', 'triangle', 'empty'];
 
 export default function CipherFlux({ onBack, currentUser, onRefreshUser }: CipherFluxProps) {
+  const haptic = useHaptic();
+  const isMobile = useIsMobile();
   // Configs and preferences
   const [level, setLevel] = useState(1);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -326,10 +330,12 @@ export default function CipherFlux({ onBack, currentUser, onRefreshUser }: Ciphe
       const agilityBonus = Math.max(0, Math.round((responseWindowMs - rt) / 4));
       setScore(s => s + 120 + agilityBonus);
       setFeedback('success');
+      haptic.success();
       playSynthesizerTone([1000, 1300], 'sine', 0.15);
     } else {
       setStreak(0);
       setFeedback('failure');
+      haptic.error();
       playSynthesizerTone([160], 'triangle', 0.25);
     }
 
@@ -561,7 +567,7 @@ export default function CipherFlux({ onBack, currentUser, onRefreshUser }: Ciphe
   }, [currentIndex, trials]);
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-zinc-200 flex flex-col justify-between p-6 relative overflow-hidden select-none font-sans">
+    <div className="game-area min-h-screen bg-neutral-950 text-zinc-200 flex flex-col justify-between p-6 relative overflow-hidden select-none font-sans">
       
       {/* 🧬 Cognitive Pulse Overlay Border */}
       <AnimatePresence>
@@ -601,13 +607,13 @@ export default function CipherFlux({ onBack, currentUser, onRefreshUser }: Ciphe
 
       {/* Header bar controls */}
       <header className="flex justify-between items-center border-b border-neutral-800 pb-4 relative z-10">
-        <button 
-          onClick={onBack}
-          className="group text-xs text-neutral-500 hover:text-white flex items-center gap-1.5 font-mono cursor-pointer transition-colors"
-        >
-          <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
-          <span>[SANTUARIO_PORT]</span>
-        </button>
+          <button 
+            onClick={onBack}
+            className="group text-xs text-neutral-500 hover:text-white flex items-center gap-1.5 font-mono cursor-pointer transition-colors min-h-[44px] min-w-[44px]"
+          >
+            <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
+            <span className="hidden md:inline">[SANTUARIO_PORT]</span>
+          </button>
 
         <div className="flex items-center gap-4">
           <button
@@ -944,7 +950,9 @@ export default function CipherFlux({ onBack, currentUser, onRefreshUser }: Ciphe
               {/* MATCH OPTION BUTTON */}
               <button
                 onClick={() => handleInputDecision('MATCH')}
-                className="border border-neutral-800 bg-neutral-950 p-4 hover:border-cyan-500 hover:text-white transition-all text-neutral-400 flex flex-col items-center justify-center font-mono cursor-pointer relative"
+                onTouchEnd={(e) => { e.preventDefault(); handleInputDecision('MATCH'); }}
+                className="border border-neutral-800 bg-neutral-950 p-4 hover:border-cyan-500 hover:text-white transition-all text-neutral-400 flex flex-col items-center justify-center font-mono cursor-pointer relative min-h-[64px]"
+                style={{ touchAction: 'manipulation' }}
               >
                 <div className="text-[9px] text-neutral-600 uppercase font-normal mb-1">Emparejado Exacto</div>
                 <div className="text-base font-extrabold tracking-tight flex items-center gap-1 text-emerald-400">
@@ -956,7 +964,9 @@ export default function CipherFlux({ onBack, currentUser, onRefreshUser }: Ciphe
               {/* MISMATCH OPTION BUTTON */}
               <button
                 onClick={() => handleInputDecision('DIFFERENT')}
-                className="border border-neutral-800 bg-neutral-950 p-4 hover:border-cyan-500 hover:text-white transition-all text-neutral-400 flex flex-col items-center justify-center font-mono cursor-pointer relative"
+                onTouchEnd={(e) => { e.preventDefault(); handleInputDecision('DIFFERENT'); }}
+                className="border border-neutral-800 bg-neutral-950 p-4 hover:border-cyan-500 hover:text-white transition-all text-neutral-400 flex flex-col items-center justify-center font-mono cursor-pointer relative min-h-[64px]"
+                style={{ touchAction: 'manipulation' }}
               >
                 <div className="text-[9px] text-neutral-600 uppercase font-normal mb-1">Incompatibilidad</div>
                 <div className="text-base font-extrabold tracking-tight flex items-center gap-1 text-rose-450">

@@ -111,17 +111,6 @@ export default function ExercisesView({ onStartGame }: ExercisesViewProps) {
       isPlayable: false
     },
     {
-      id: 'tracker',
-      title: 'Neuro-Pulse',
-      category: 'Focus',
-      difficulty: 'Medium',
-      time: '4m',
-      rating: '9.7',
-      description: 'Entrena tu atención mantenida y velocidad de rastreo visoespacial profundo.',
-      icon: '💫',
-      isPlayable: true
-    },
-    {
       id: 'chronos',
       title: 'Chronos Sync',
       category: 'Focus',
