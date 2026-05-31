@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { supabaseClient } from '@/lib/supabaseClient';
+import { saveGameScore } from '@/lib/gameScoreService';
 import { useHaptic } from '@/hooks/use-haptic';
 
 interface PatternRecallProps {
@@ -71,7 +71,7 @@ export default function PatternRecall({ onBack, currentUser, onRefreshUser }: Pa
       // Save user high-score
       const finalScore = score + (level - 1) * 100;
       if (currentUser) {
-        supabaseClient.db.saveScore(currentUser.id, 'Pattern Recall', finalScore, level);
+        saveGameScore(currentUser?.id, 'Pattern Recall', finalScore, level);
         onRefreshUser(); // pull the new rank up!
       }
     }

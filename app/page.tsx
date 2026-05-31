@@ -1,7 +1,9 @@
 // 📂 /app/page.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import { useSupabase } from '@/components/SupabaseProvider';
 import { supabaseClient } from '@/lib/supabaseClient';
 import AnalogPostProcessing from '@/components/effects/AnalogPostProcessing';
 import TodayView from '@/components/TodayView';
@@ -24,60 +26,87 @@ import SemanticFirewall from '@/components/games/SemanticFirewall';
 import { Calendar, BarChart2, Sparkles, Trophy, Settings, Brain, User } from 'lucide-react';
 
 export default function Home() {
+  const router = useRouter();
+  const { user: supabaseUser, profile, isLoading: authLoading, signOut, updateProfile, refreshProfile } = useSupabase();
   const [activeTab, setActiveTab] = useState<'today' | 'insights' | 'practice' | 'profile' | 'game'>('today');
   const [currentGame, setCurrentGame] = useState<string>('spatial');
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [customUsername, setCustomUsername] = useState('');
+  const [guestUser, setGuestUser] = useState<any>(null);
 
-  // Sincronizar credentials on startup
-  const refreshUser = async () => {
-    const { user: curr } = await supabaseClient.auth.getUser();
-    if (curr) {
-      setUser(curr);
-      setCustomUsername(curr.username);
-    } else {
-      // Automatic anonymous guest login for 100% friction-free access
-      const { user: guest } = await supabaseClient.auth.signInAnonymously();
-      setUser(guest);
-      if (guest) setCustomUsername(guest.username);
+  // Build the unified "app user" from Supabase auth+profile OR localStorage guest
+  const appUser = useMemo(() => {
+    if (supabaseUser && profile) {
+      return {
+        id: supabaseUser.id,
+        username: profile.username,
+        email: supabaseUser.email,
+        cerebra_rank: 'Iniciado del Templo', // Will come from cognitive_metrics later
+        created_at: supabaseUser.created_at,
+        is_guest: false,
+      };
     }
-    setLoading(false);
-  };
+    return guestUser || {
+      id: 'guest',
+      username: 'Invitado',
+      cerebra_rank: 'Iniciado del Templo',
+      created_at: new Date().toISOString(),
+      is_guest: true,
+    };
+  }, [supabaseUser, profile, guestUser]);
 
+  // Initialize guest user from localStorage on mount
   useEffect(() => {
-    const t = setTimeout(() => {
-      refreshUser();
-    }, 0);
-    return () => clearTimeout(t);
+    supabaseClient.auth.getUser().then(({ user: localUser }) => {
+      if (localUser) {
+        setGuestUser(localUser);
+        setCustomUsername(localUser.username);
+      }
+    });
   }, []);
 
   const handleSignOut = async () => {
-    setLoading(true);
-    await supabaseClient.auth.signOut();
-    await refreshUser();
+    // If authenticated with Supabase, sign out
+    if (supabaseUser) {
+      await signOut();
+    } else {
+      // Clear local guest
+      await supabaseClient.auth.signOut();
+      const { user: newGuest } = await supabaseClient.auth.signInAnonymously();
+      setGuestUser(newGuest);
+    }
     setActiveTab('today');
   };
 
-  const handleUpdateUsername = () => {
+  const handleUpdateUsername = async () => {
     if (!customUsername.trim()) return;
-    const db = JSON.parse(localStorage.getItem('mental_sanctuary_db') || '{}');
-    if (db && db.currentUser) {
-      db.currentUser.username = customUsername;
-      const profile = db.profiles.find((p: any) => p.id === db.currentUser.id);
-      if (profile) profile.username = customUsername;
-      localStorage.setItem('mental_sanctuary_db', JSON.stringify(db));
-      setUser(db.currentUser);
-      setShowSettings(false);
+
+    if (supabaseUser) {
+      // Update in Supabase profiles
+      const { error } = await updateProfile({ username: customUsername } as any);
+      if (!error) {
+        await refreshProfile();
+        setShowSettings(false);
+      }
+    } else {
+      // Update in localStorage guest
+      const db = JSON.parse(localStorage.getItem('mental_sanctuary_db') || '{}');
+      if (db && db.currentUser) {
+        db.currentUser.username = customUsername;
+        const profile = db.profiles.find((p: any) => p.id === db.currentUser.id);
+        if (profile) profile.username = customUsername;
+        localStorage.setItem('mental_sanctuary_db', JSON.stringify(db));
+        setGuestUser(db.currentUser);
+        setShowSettings(false);
+      }
     }
   };
 
-  if (loading) {
+  if (authLoading) {
     return (
-      <div className="min-h-screen bg-[#fbf9f6] flex flex-col items-center justify-center font-sans">
-        <div className="w-12 h-12 rounded-full border-2 border-mint-deep border-t-transparent animate-spin" />
-        <span className="text-xs font-mono text-ink-muted mt-4 uppercase tracking-widest">Sincronizando Santuario...</span>
+      <div className="min-h-screen bg-[#D4D1CA] flex flex-col items-center justify-center font-sans">
+        <div className="w-12 h-12 rounded-none border-2 border-[#1A1A1A] border-t-transparent animate-spin" />
+        <span className="text-xs font-mono text-[#1A1A1A]/60 mt-4 uppercase tracking-widest">Sincronizando Santuario...</span>
       </div>
     );
   }
@@ -88,87 +117,81 @@ export default function Home() {
       <AnalogPostProcessing>
         {currentGame === 'express' ? (
           <CafeExpresoRoot 
-            currentUser={user}
+            currentUser={appUser}
             onBack={() => setActiveTab('practice')}
-            onRefreshUser={refreshUser}
+            onRefreshUser={() => {}}
           />
         ) : currentGame === 'thought' ? (
           <TrainOfThought 
-            currentUser={user}
+            currentUser={appUser}
             onBack={() => setActiveTab('practice')}
-            onRefreshUser={refreshUser}
+            onRefreshUser={() => {}}
           />
         ) : currentGame === 'horizon' ? (
           <NeuralHorizon 
-            currentUser={user}
+            currentUser={appUser}
             onBack={() => setActiveTab('practice')}
-            onRefreshUser={refreshUser}
+            onRefreshUser={() => {}}
           />
         ) : currentGame === 'quantum' ? (
           <QuantumTrace 
-            currentUser={user}
+            currentUser={appUser}
             onBack={() => setActiveTab('practice')}
-            onRefreshUser={refreshUser}
+            onRefreshUser={() => {}}
           />
         ) : currentGame === 'chronos' ? (
           <ChronosSync 
-            currentUser={user}
+            currentUser={appUser}
             onBack={() => setActiveTab('practice')}
-            onRefreshUser={refreshUser}
+            onRefreshUser={() => {}}
           />
         ) : currentGame === 'vcore' ? (
           <VectorCore
-            currentUser={user}
+            currentUser={appUser}
             onBack={() => setActiveTab('practice')}
-            onRefreshUser={refreshUser}
+            onRefreshUser={() => {}}
           />
         ) : currentGame === 'cipher' ? (
           <CipherFlux
-            currentUser={user}
+            currentUser={appUser}
             onBack={() => setActiveTab('practice')}
-            onRefreshUser={refreshUser}
+            onRefreshUser={() => {}}
           />
         ) : currentGame === 'nexus' ? (
           <NexusShift
-            currentUser={user}
+            currentUser={appUser}
             onBack={() => setActiveTab('practice')}
-            onRefreshUser={refreshUser}
+            onRefreshUser={() => {}}
           />
         ) : currentGame === 'circuit' ? (
           <CircuitForge
-            currentUser={user}
+            currentUser={appUser}
             onBack={() => setActiveTab('practice')}
-            onRefreshUser={refreshUser}
+            onRefreshUser={() => {}}
           />
         ) : currentGame === 'lexicon' ? (
           <LexiconCore
-            currentUser={user}
+            currentUser={appUser}
             onBack={() => setActiveTab('practice')}
-            onRefreshUser={refreshUser}
-          />
-        ) : currentGame === 'vcore' ? (
-          <VectorCore
-            currentUser={user}
-            onBack={() => setActiveTab('practice')}
-            onRefreshUser={refreshUser}
+            onRefreshUser={() => {}}
           />
         ) : currentGame === 'vlink' ? (
           <VectorLink
-            currentUser={user}
+            currentUser={appUser}
             onBack={() => setActiveTab('practice')}
-            onRefreshUser={refreshUser}
+            onRefreshUser={() => {}}
           />
         ) : currentGame === 'semantic' ? (
           <SemanticFirewall
-            currentUser={user}
+            currentUser={appUser}
             onBack={() => setActiveTab('practice')}
-            onRefreshUser={refreshUser}
+            onRefreshUser={() => {}}
           />
         ) : (
           <PatternRecall 
-            currentUser={user}
+            currentUser={appUser}
             onBack={() => setActiveTab('practice')}
-            onRefreshUser={refreshUser}
+            onRefreshUser={() => {}}
           />
         )}
       </AnalogPostProcessing>
@@ -228,12 +251,22 @@ export default function Home() {
               >
                 <Settings size={18} />
               </button>
-              <div 
-                onClick={() => setActiveTab('profile')}
-                className="w-8 h-8 bg-[#FF5028] text-white flex items-center justify-center font-black text-xs uppercase cursor-pointer border border-[#1A1A1A] hover:scale-105 transition-all"
-              >
-                {user?.username?.[0] || 'G'}
-              </div>
+
+              {!supabaseUser && !appUser.is_guest ? (
+                <button
+                  onClick={() => router.push('/auth/login')}
+                  className="h-9 px-3 bg-[#FF5028] hover:bg-[#1A1A1A] text-white text-[9px] font-black uppercase tracking-wider cursor-pointer border border-[#1A1A1A] transition-all font-mono"
+                >
+                  Ingresar
+                </button>
+              ) : (
+                <div 
+                  onClick={() => setActiveTab('profile')}
+                  className="w-8 h-8 bg-[#FF5028] text-white flex items-center justify-center font-black text-xs uppercase cursor-pointer border border-[#1A1A1A] hover:scale-105 transition-all"
+                >
+                  {appUser?.username?.[0] || 'G'}
+                </div>
+              )}
             </div>
 
           </div>
@@ -263,7 +296,14 @@ export default function Home() {
               </div>
 
               <div className="text-xs text-[#1A1A1A]/60 font-medium">
-                Sesión: <span className="text-[#1A1A1A] font-semibold">{user?.is_guest ? 'Invitado Local (LocalStorage)' : 'Email Verificado (Cloud)'}</span>
+                Sesión:{' '}
+                <span className="text-[#1A1A1A] font-semibold">
+                  {supabaseUser
+                    ? 'Supabase Cloud (Auth)'
+                    : appUser?.is_guest
+                      ? 'Invitado Local (LocalStorage)'
+                      : 'Sin sesión'}
+                </span>
               </div>
             </div>
           </div>
@@ -273,7 +313,7 @@ export default function Home() {
         <main className="flex-grow max-w-[1120px] mx-auto w-full px-5 md:px-10 py-8">
           {activeTab === 'today' && (
             <TodayView 
-              currentUser={user}
+              currentUser={appUser}
               onStartGame={() => setActiveTab('practice')}
               onNavigate={(tab) => setActiveTab(tab)}
             />
@@ -281,7 +321,7 @@ export default function Home() {
 
           {activeTab === 'insights' && (
             <InsightsView 
-              currentUser={user}
+              currentUser={appUser}
             />
           )}
 
@@ -296,9 +336,12 @@ export default function Home() {
 
           {activeTab === 'profile' && (
             <ProfileView 
-              currentUser={user}
+              currentUser={appUser}
+              supabaseUser={supabaseUser}
+              supabaseProfile={profile}
               onSignOut={handleSignOut}
-              onRefreshUser={refreshUser}
+              onRefreshUser={refreshProfile}
+              onLogin={() => router.push('/auth/login')}
             />
           )}
         </main>

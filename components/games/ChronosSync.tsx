@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { supabaseClient } from '@/lib/supabaseClient';
+import { saveGameScore } from '@/lib/gameScoreService';
 import { 
   Cpu, Sparkles, Activity, Brain, RotateCcw, 
   ArrowLeft, Check, AlertCircle, Play, Sliders, ChevronRight
@@ -237,7 +237,7 @@ export default function ChronosSync({ onBack, currentUser, onRefreshUser }: Chro
         // Register final score directly in database
         const finalScore = score + (nValue * 500);
         if (currentUser) {
-          supabaseClient.db.saveScore(currentUser.id, 'Chronos Sync', finalScore, nValue);
+          saveGameScore(currentUser?.id, 'Chronos Sync', finalScore, nValue);
           onRefreshUser();
         }
       } else {

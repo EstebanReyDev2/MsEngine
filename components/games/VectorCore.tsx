@@ -5,7 +5,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'motion/react';
 import { useHaptic } from '@/hooks/use-haptic';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { supabaseClient } from '@/lib/supabaseClient';
+import { saveGameScore } from '@/lib/gameScoreService';
 import { 
   Cpu, Sparkles, Activity, Brain, RotateCcw, 
   ArrowLeft, Check, AlertCircle, Play, Sliders, ChevronLeft, ChevronRight, Volume2, VolumeX, Zap 
