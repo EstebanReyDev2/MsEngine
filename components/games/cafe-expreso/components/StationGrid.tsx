@@ -1,4 +1,4 @@
-// ─── StationGrid — Grid de estaciones activas ───
+// ─── StationGrid — Grid / Carrusel de estaciones activas ───
 
 'use client';
 
@@ -13,7 +13,18 @@ export function StationGrid() {
       <h3 className="text-[10px] font-black tracking-widest text-amber-500 font-mono mb-2 uppercase">
         {'// ESTACIONES DE PREPARACIÓN'}
       </h3>
-      <div className="grid grid-cols-2 gap-3">
+
+      {/* ─── Mobile: carrusel horizontal ─── */}
+      <div className="flex md:hidden flex-row overflow-x-auto snap-x scrollbar-none gap-3 w-full overscroll-x-contain">
+        {stations.map(s => (
+          <div key={s.id} className="min-w-[140px] w-[45%] snap-center flex-shrink-0">
+            <StationCard station={s} />
+          </div>
+        ))}
+      </div>
+
+      {/* ─── Desktop: grid estático ─── */}
+      <div className="hidden md:grid grid-cols-2 gap-3">
         {stations.map(s => (
           <StationCard key={s.id} station={s} />
         ))}

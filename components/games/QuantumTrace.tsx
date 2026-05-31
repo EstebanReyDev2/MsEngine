@@ -151,12 +151,30 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
   // Referencia al SVG container para touch-action
   const arenaRef = useRef<HTMLDivElement>(null);
 
-  // Sound generator (stabilized inside useCallback callback)
+  // Sound generator — singleton AudioContext para evitar leak (CREAR UNO NUEVO POR SONIDO AGOTA EL LÍMITE DE CHROME)
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const getAudioContext = React.useCallback((): AudioContext | null => {
+    if (typeof window === 'undefined') return null;
+    if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+      try {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        audioCtxRef.current = new AudioCtx();
+      } catch {
+        return null;
+      }
+    }
+    // Reanudar si está suspendido (requiere interacción del usuario)
+    if (audioCtxRef.current.state === 'suspended') {
+      audioCtxRef.current.resume();
+    }
+    return audioCtxRef.current;
+  }, []);
+
   const playSound = React.useCallback((freq: number, type: 'sine' | 'square' | 'triangle' | 'sawtooth' = 'sine', duration = 0.2) => {
-    if (!soundEnabled || typeof window === 'undefined') return;
+    if (!soundEnabled) return;
+    const ctx = getAudioContext();
+    if (!ctx) return;
     try {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      const ctx = new AudioCtx();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       
@@ -174,7 +192,16 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
     } catch {
       // Audio failsafe
     }
-  }, [soundEnabled]);
+  }, [soundEnabled, getAudioContext]);
+
+  // Cerrar AudioContext al desmontar
+  useEffect(() => {
+    return () => {
+      if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+        audioCtxRef.current.close();
+      }
+    };
+  }, []);
 
   // Launch a brand new session
   const startNewGame = () => {
@@ -224,6 +251,7 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
     if (gameState !== 'showing_path' || sequence.length === 0) return;
 
     let index = 0;
+    let rotationTimeout: ReturnType<typeof setTimeout> | null = null;
     playSound(350 + index * 100, 'sine', 0.18);
 
     const intervalTimer = setInterval(() => {
@@ -240,7 +268,7 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
           setIsRotatingEffect(true);
           playSound(280, 'sawtooth', 0.45);
           
-          setTimeout(() => {
+          rotationTimeout = setTimeout(() => {
             setRotationDegrees(rollRotation);
             setOnlyShowSequenceNodes(round >= 5);
             setGameState('player_input');
@@ -256,6 +284,9 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
 
     return () => {
       clearInterval(intervalTimer);
+      if (rotationTimeout !== null) {
+        clearTimeout(rotationTimeout);
+      }
     };
   }, [gameState, sequence, nodeDisplayInterval, round, playSound, isMobile]);
 
@@ -546,7 +577,7 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
 
           {/* 🌀 DYNAMIC SVG ARENA STAGE (Rotation active on advanced phases) */}
           <motion.div 
-            className="w-full relative max-w-[650px] aspect-[10/7] flex items-center justify-center"
+            className="w-full relative aspect-[10/7] flex items-center justify-center"
             animate={{ rotate: rotationDegrees }}
             transition={{ type: 'spring', damping: 20, stiffness: 60 }}
           >

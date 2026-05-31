@@ -51,13 +51,13 @@ export default function CafeExpresoRoot({ onBack, currentUser, onRefreshUser }: 
   return (
     <GameShell active={phase === 'playing'}>
     <div
-      className="game-area w-full max-w-[1050px] mx-auto bg-[#141414] text-[#F3F2EE] border-4 border-[#1A1A1A] p-3 md:p-5 select-none font-sans overflow-hidden relative min-h-[100dvh]"
+      className="game-area w-full max-w-[1050px] mx-auto bg-[#141414] text-[#F3F2EE] border-4 border-[#1A1A1A] p-3 md:p-5 select-none font-sans overflow-hidden relative min-h-[100dvh] max-md:max-h-[100dvh] max-md:flex max-md:flex-col"
       style={{ touchAction: 'manipulation' }}
     >
       <div className="absolute inset-0 bg-stone-900/40 pointer-events-none" />
 
       {/* ─── HEADER ─── */}
-      <div className="relative z-10 flex flex-col md:flex-row justify-between items-stretch gap-3 pb-3 border-b border-white/10 mb-4">
+      <div className="relative z-10 flex flex-col md:flex-row justify-between items-stretch gap-3 pb-3 border-b border-white/10 mb-4 max-md:flex-shrink-0">
         <div className="flex items-center gap-3">
           <button
             onClick={handleBack}
@@ -115,7 +115,7 @@ export default function CafeExpresoRoot({ onBack, currentUser, onRefreshUser }: 
 
       {/* ─── JUEGO (solo visible en playing) ─── */}
       {phase !== 'lobby' && (
-        <div className="relative z-10 space-y-4">
+        <div className="relative z-10 max-md:flex-1 max-md:min-h-0 max-md:flex max-md:flex-col md:space-y-4">
           {/* Popups flotantes + partículas */}
           {popups.map(p => (
             <PointPopup key={p.id} popup={p} />
@@ -123,17 +123,23 @@ export default function CafeExpresoRoot({ onBack, currentUser, onRefreshUser }: 
           <ParticleOverlay />
 
           {/* Órdenes */}
-          <OrderBar />
+          <div className="max-md:flex-shrink-0">
+            <OrderBar />
+          </div>
 
           {/* Estaciones */}
-          <StationGrid />
+          <div className="max-md:flex-1 max-md:min-h-0 max-md:overflow-hidden md:mb-4">
+            <StationGrid />
+          </div>
 
           {/* Ingredientes */}
-          <IngredientShelf />
+          <div className="max-md:flex-shrink-0 md:mb-4">
+            <IngredientShelf />
+          </div>
 
           {/* Tutorial */}
           {showTutorial && phase === 'playing' && (
-            <div className="bg-[#FF5028]/10 border border-[#FF5028] p-4 relative">
+            <div className="bg-[#FF5028]/10 border border-[#FF5028] p-4 relative max-md:flex-shrink-0">
               <button
                 onClick={toggleTutorial}
                 className="absolute right-3 top-3 text-[9px] uppercase font-black tracking-widest text-[#FF5028] font-mono cursor-pointer"
