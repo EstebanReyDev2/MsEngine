@@ -2,6 +2,7 @@
 
 'use client';
 
+import GameShell from '@/components/shared/GameShell';
 import { ArrowLeft, Pause, Volume2, VolumeX } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 import { useCafeStore, selectPhase, selectSound, selectPopups, selectTutorial } from '../store/cafeStore';
@@ -48,6 +49,7 @@ export default function CafeExpresoRoot({ onBack, currentUser, onRefreshUser }: 
   };
 
   return (
+    <GameShell active={phase === 'playing'}>
     <div
       className="game-area w-full max-w-[1050px] mx-auto bg-[#141414] text-[#F3F2EE] border-4 border-[#1A1A1A] p-3 md:p-5 select-none font-sans overflow-hidden relative min-h-[100dvh]"
       style={{ touchAction: 'manipulation' }}
@@ -153,5 +155,6 @@ export default function CafeExpresoRoot({ onBack, currentUser, onRefreshUser }: 
         </div>
       )}
     </div>
+    </GameShell>
   );
 }

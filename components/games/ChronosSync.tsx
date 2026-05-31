@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { saveGameScore } from '@/lib/gameScoreService';
+import GameShell from '@/components/shared/GameShell';
 import { 
   Cpu, Sparkles, Activity, Brain, RotateCcw, 
   ArrowLeft, Check, AlertCircle, Play, Sliders, ChevronRight
@@ -356,6 +357,7 @@ export default function ChronosSync({ onBack, currentUser, onRefreshUser }: Chro
   };
 
   return (
+    <GameShell active={gameState !== 'intro'}>
     <div className="game-area min-h-screen bg-black text-zinc-100 flex flex-col justify-between p-6 transition-all relative overflow-hidden select-none font-sans">
       
       {/* 🔮 Active Feedback Glow Layers */}
@@ -744,5 +746,6 @@ export default function ChronosSync({ onBack, currentUser, onRefreshUser }: Chro
       </footer>
 
     </div>
+    </GameShell>
   );
 }

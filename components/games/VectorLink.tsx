@@ -5,6 +5,7 @@
 'use client';
 
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import GameShell from '@/components/shared/GameShell';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Volume2, VolumeX, Zap, Crown, RotateCcw } from 'lucide-react';
 import { useHaptic } from '@/hooks/use-haptic';
@@ -422,6 +423,7 @@ export default function VectorLink({ onBack, currentUser, onRefreshUser }: Vecto
 
   // ─── RENDER ───
   return (
+    <GameShell active={gameState !== 'idle'}>
     <div
       className="w-full min-h-[100dvh] flex flex-col bg-[#0b1120] text-white select-none overflow-hidden font-sans"
       style={{ touchAction: 'manipulation' }}
@@ -718,6 +720,7 @@ export default function VectorLink({ onBack, currentUser, onRefreshUser }: Vecto
         </div>
       </div>
     </div>
+    </GameShell>
   );
 }
 

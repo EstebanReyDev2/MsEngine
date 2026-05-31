@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabaseClient } from '@/lib/supabaseClient';
+import GameShell from '@/components/shared/GameShell';
 import { 
   Cpu, RotateCcw, ArrowLeft, Volume2, VolumeX, Shield, 
   ChevronRight, AlertCircle, Zap, RefreshCw
@@ -198,6 +199,7 @@ export default function NexusShift({ onBack, currentUser, onRefreshUser }: Nexus
   );
 
   return (
+    <GameShell active={gameState !== 'intro'}>
     <div className="game-area min-h-screen bg-zinc-950 text-zinc-200 p-6 flex flex-col items-center justify-center font-mono relative overflow-hidden">
       {/* Context Ring */}
       <motion.div 
@@ -260,5 +262,6 @@ export default function NexusShift({ onBack, currentUser, onRefreshUser }: Nexus
         </div>
       )}
     </div>
+    </GameShell>
   );
 }

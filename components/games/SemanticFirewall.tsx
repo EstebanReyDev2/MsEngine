@@ -3,6 +3,7 @@
 
 import React, { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import GameShell from '@/components/shared/GameShell';
 import { ArrowLeft, Volume2, VolumeX, ShieldCheck, Terminal, AlertTriangle } from 'lucide-react';
 import { useHaptic } from '@/hooks/use-haptic';
 
@@ -85,6 +86,7 @@ export default function SemanticFirewall({ onBack, currentUser, onRefreshUser }:
   }, [gameState, currentArg, playSound, haptic, advanceToNext]);
 
   return (
+    <GameShell active={true}>
     <div
       className="w-full min-h-[100dvh] flex flex-col bg-black text-zinc-300 select-none overflow-hidden font-mono"
       style={{ touchAction: 'manipulation' }}
@@ -213,5 +215,6 @@ export default function SemanticFirewall({ onBack, currentUser, onRefreshUser }:
         </AnimatePresence>
       </div>
     </div>
+    </GameShell>
   );
 }

@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { supabaseClient } from '@/lib/supabaseClient';
+import { getGameScores, getGameStreak } from '@/lib/gameScoreService';
 import { Flame, Brain, CheckCircle2, ArrowRight, Sparkles, Trophy } from 'lucide-react';
 
 interface TodayViewProps {
@@ -24,7 +24,7 @@ export default function TodayView({ currentUser, onStartGame, onNavigate }: Toda
   const fetchAffirmation = async () => {
     setLoadingAffirmation(true);
     try {
-      const userScores = supabaseClient.db.getScores(currentUser?.id);
+      const userScores = getGameScores(currentUser?.id);
       const res = await fetch('/app/api/gemini/insights', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -49,7 +49,7 @@ export default function TodayView({ currentUser, onStartGame, onNavigate }: Toda
 
   useEffect(() => {
     if (currentUser) {
-      const activeStreak = supabaseClient.db.getStreak(currentUser.id);
+      const activeStreak = getGameStreak(currentUser.id);
       const t = setTimeout(() => {
         setStreak(activeStreak.current_streak);
         fetchAffirmation();
@@ -130,7 +130,7 @@ export default function TodayView({ currentUser, onStartGame, onNavigate }: Toda
           </div>
 
           <div className="mt-8 pt-6 border-t border-[#1A1A1A]/15 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <span className="font-serif italic text-xs text-[#1A1A1A]/60">Siguiente rango: {supabaseClient.db.getScores(currentUser?.id).length > 2 ? 'Explorador Sináptico' : 'Mente Enfocada'}</span>
+            <span className="font-serif italic text-xs text-[#1A1A1A]/60">Siguiente rango: {getGameScores(currentUser?.id).length > 2 ? 'Explorador Sináptico' : 'Mente Enfocada'}</span>
             <button 
               onClick={onStartGame}
               className="px-6 py-3 bg-[#FF5028] text-white rounded-none border border-[#1A1A1A] hover:bg-[#1A1A1A] transition-all font-bold text-xs flex items-center gap-2 group cursor-pointer uppercase tracking-wider"

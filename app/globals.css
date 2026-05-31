@@ -63,6 +63,44 @@ body {
 }
 
 /* ════════════════════════════════════════════
+   GAME FULLSCREEN SHELL
+   ════════════════════════════════════════════ */
+
+.game-shell {
+  width: 100%;
+  min-height: 100%;
+}
+
+.game-shell--active {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  touch-action: none;
+  -webkit-overflow-scrolling: none;
+  overscroll-behavior: none;
+}
+
+/* Applied to <html>/<body> by the hook when a game is active */
+html.game-active,
+body.game-active {
+  overflow: hidden !important;
+  position: fixed !important;
+  width: 100% !important;
+  height: 100% !important;
+  overscroll-behavior: none !important;
+  -webkit-overflow-scrolling: none !important;
+}
+
+/* Disable pull-to-refresh and back-swipe gestures */
+html.game-active {
+  overscroll-behavior-x: none !important;
+  overscroll-behavior-y: none !important;
+}
+
+/* ════════════════════════════════════════════
    FIN - MOBILE TOUCH OPTIMIZATION
    ════════════════════════════════════════════ */
 

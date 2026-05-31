@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useHaptic } from '@/hooks/use-haptic';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { saveGameScore } from '@/lib/gameScoreService';
+import GameShell from '@/components/shared/GameShell';
 import { 
   Cpu, Sparkles, Activity, Brain, RotateCcw, 
   ArrowLeft, Check, AlertCircle, Play, Sliders, ChevronLeft, ChevronRight, Volume2, VolumeX, Zap 
@@ -225,7 +226,7 @@ export default function VectorCore({ onBack, currentUser, onRefreshUser }: Vecto
         // Persistence integration with permanent storage
         const finalScore = score + (level * 600);
         if (currentUser) {
-          supabaseClient.db.saveScore(currentUser.id, 'Vector Core', finalScore, level);
+          saveGameScore(currentUser?.id, 'Vector Core', finalScore, level);
           onRefreshUser();
         }
       }, 0);
@@ -385,6 +386,7 @@ export default function VectorCore({ onBack, currentUser, onRefreshUser }: Vecto
   }, [currentIndex, trials]);
 
   return (
+    <GameShell active={gameState !== 'intro'}>
     <div className="game-area min-h-screen bg-neutral-950 text-zinc-100 flex flex-col justify-between p-6 relative overflow-hidden select-none font-sans">
       
       {/* 🔮 Active Peripheral Alert Frame overlay */}
@@ -839,5 +841,6 @@ export default function VectorCore({ onBack, currentUser, onRefreshUser }: Vecto
       </footer>
 
     </div>
+    </GameShell>
   );
 }

@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { supabaseClient } from '@/lib/supabaseClient';
+import { getGameScores, getGameStreak } from '@/lib/gameScoreService';
 import { Brain, Sparkles } from 'lucide-react';
 import EspectroCognitivo from './EspectroCognitivo';
 
@@ -22,7 +22,7 @@ export default function InsightsView({ currentUser }: InsightsViewProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           scores: userScores,
-          streak: supabaseClient.db.getStreak(currentUser?.id).current_streak,
+          streak: getGameStreak(currentUser?.id).current_streak,
           rank: currentUser?.cerebra_rank || 'Iniciado del Templo'
         })
       });
@@ -42,7 +42,7 @@ export default function InsightsView({ currentUser }: InsightsViewProps) {
 
   useEffect(() => {
     if (currentUser) {
-      const userScores = supabaseClient.db.getScores(currentUser.id);
+      const userScores = getGameScores(currentUser.id);
       const t = setTimeout(() => {
         fetchBrainReport(userScores);
       }, 300);

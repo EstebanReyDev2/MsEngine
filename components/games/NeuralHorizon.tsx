@@ -2,7 +2,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { supabaseClient } from '@/lib/supabaseClient';
+import { saveGameScore } from '@/lib/gameScoreService';
+import GameShell from '@/components/shared/GameShell';
 import { 
   ArrowLeft, Play, Pause, RotateCcw, HelpCircle, 
   Volume2, VolumeX, Trophy, Sparkles, CheckCircle2, 
@@ -245,17 +246,13 @@ export default function NeuralHorizon({ onBack, currentUser, onRefreshUser }: { 
   const endGame = (finalScore: number) => {
     setGameState('gameover');
     if (currentUser) {
-      try {
-        supabaseClient.db.saveScore(
-          currentUser.id, 
-          'Neural Horizon', 
-          finalScore, 
-          Math.min(10, Math.floor(finalScore / 100) + 1)
-        );
-        onRefreshUser();
-      } catch (err) {
-        console.error('Error saving game index score:', err);
-      }
+      saveGameScore(
+        currentUser?.id,
+        'Neural Horizon',
+        finalScore,
+        Math.min(10, Math.floor(finalScore / 100) + 1)
+      );
+      onRefreshUser();
     }
   };
 
@@ -267,6 +264,7 @@ export default function NeuralHorizon({ onBack, currentUser, onRefreshUser }: { 
   }, []);
 
   return (
+    <GameShell active={gameState !== 'lobby' && gameState !== 'gameover'}>
     <div id="neural-horizon-root" className="game-area w-full max-w-[1050px] mx-auto bg-zinc-950 text-zinc-100 border-4 border-zinc-900 p-4 md:p-6 select-none font-sans overflow-hidden relative">
       
       {/* 🚀 Header HUD display */}
@@ -707,5 +705,6 @@ export default function NeuralHorizon({ onBack, currentUser, onRefreshUser }: { 
       </div>
 
     </div>
+    </GameShell>
   );
 }

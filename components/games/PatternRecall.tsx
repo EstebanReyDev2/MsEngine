@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { saveGameScore } from '@/lib/gameScoreService';
+import GameShell from '@/components/shared/GameShell';
 import { useHaptic } from '@/hooks/use-haptic';
 
 interface PatternRecallProps {
@@ -191,6 +192,7 @@ export default function PatternRecall({ onBack, currentUser, onRefreshUser }: Pa
   const strokeDashoffset = 282.6 - (282.6 * secondsLeft) / 12;
 
   return (
+    <GameShell active={gameState !== 'preview'}>
     <div className="game-area flex flex-col min-h-screen text-on-surface bg-background max-w-lg mx-auto w-full px-5 py-6 font-sans">
       
       {/* 🧭 Header */}
@@ -345,5 +347,6 @@ export default function PatternRecall({ onBack, currentUser, onRefreshUser }: Pa
         </footer>
       )}
     </div>
+    </GameShell>
   );
 }

@@ -5,7 +5,8 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'motion/react';
 import { useHaptic } from '@/hooks/use-haptic';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { supabaseClient } from '@/lib/supabaseClient';
+import { saveGameScore } from '@/lib/gameScoreService';
+import GameShell from '@/components/shared/GameShell';
 import { 
   Cpu, RotateCcw, ArrowLeft, Volume2, VolumeX, Zap, 
   Shield, Play, Sparkles, HelpCircle, ChevronRight, Check, AlertCircle 
@@ -374,7 +375,7 @@ export default function CipherFlux({ onBack, currentUser, onRefreshUser }: Ciphe
         // Permanent storage persistence
         const finalScore = score + (level * 700);
         if (currentUser) {
-          supabaseClient.db.saveScore(currentUser.id, 'Cipher Flux', finalScore, level);
+          saveGameScore(currentUser?.id, 'Cipher Flux', finalScore, level);
           onRefreshUser();
         }
       }, 0);
@@ -567,6 +568,7 @@ export default function CipherFlux({ onBack, currentUser, onRefreshUser }: Ciphe
   }, [currentIndex, trials]);
 
   return (
+    <GameShell active={gameState !== 'intro'}>
     <div className="game-area min-h-screen bg-neutral-950 text-zinc-200 flex flex-col justify-between p-6 relative overflow-hidden select-none font-sans">
       
       {/* 🧬 Cognitive Pulse Overlay Border */}
@@ -991,5 +993,6 @@ export default function CipherFlux({ onBack, currentUser, onRefreshUser }: Ciphe
       </footer>
 
     </div>
+    </GameShell>
   );
 }

@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSupabase } from '@/components/SupabaseProvider';
-import { supabaseClient } from '@/lib/supabaseClient';
+import { getGameScores, getGameStreak } from '@/lib/gameScoreService';
 import type { User } from '@supabase/supabase-js';
 import { User as UserIcon, Medal, Database, KeyRound, LogOut, Edit3, Check, X } from 'lucide-react';
 
@@ -36,8 +36,8 @@ export default function ProfileView({
 
   useEffect(() => {
     if (currentUser) {
-      setScores(supabaseClient.db.getScores(currentUser.id));
-      setStreak(supabaseClient.db.getStreak(currentUser.id).current_streak);
+      setScores(getGameScores(currentUser.id));
+      setStreak(getGameStreak(currentUser.id).current_streak);
       setEditDisplayName(supabaseProfile?.display_name || '');
     }
   }, [currentUser, supabaseProfile]);

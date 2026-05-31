@@ -2,10 +2,11 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { supabaseClient } from '@/lib/supabaseClient';
-import { 
-  ArrowLeft, Play, Pause, RotateCcw, HelpCircle, 
-  Volume2, VolumeX, Trophy, Sparkles, CheckCircle2, 
+import { saveGameScore } from '@/lib/gameScoreService';
+import GameShell from '@/components/shared/GameShell';
+import {
+  ArrowLeft, Play, Pause, RotateCcw, HelpCircle,
+  Volume2, VolumeX, Trophy, Sparkles, CheckCircle2,
   XCircle, Zap, RefreshCw, Layers
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -240,19 +241,15 @@ export default function TrainOfThought({ onBack, currentUser, onRefreshUser }: T
     setGameState('gameover');
     playSound(220, 'sawtooth', 0.4);
     
-    // Save to Postgres/Local db
+    // Save game score (Supabase if auth, localStorage if guest)
     if (currentUser) {
-      try {
-        supabaseClient.db.saveScore(
-          currentUser.id, 
-          'Train of Thought', 
-          finalScore, 
-          Math.min(10, Math.floor(finalScore / 100) + 1)
-        );
-        onRefreshUser();
-      } catch (e) {
-        console.error('Error saving score:', e);
-      }
+      saveGameScore(
+        currentUser?.id,
+        'Train of Thought',
+        finalScore,
+        Math.min(10, Math.floor(finalScore / 100) + 1)
+      );
+      onRefreshUser();
     }
   };
 
@@ -453,6 +450,7 @@ export default function TrainOfThought({ onBack, currentUser, onRefreshUser }: T
   };
 
   return (
+    <GameShell active={gameState === 'playing' || gameState === 'paused'}>
     <div id="train-of-thought-root" className="game-area w-full max-w-[1000px] mx-auto bg-[#1A1A1A] text-[#F3F2EE] border-4 border-[#1A1A1A] p-4 md:p-6 select-none font-sans overflow-hidden relative">
       <div className="absolute inset-0 bg-[#141414] opacity-40 pointer-events-none" />
       
@@ -1047,5 +1045,6 @@ export default function TrainOfThought({ onBack, currentUser, onRefreshUser }: T
       </div>
 
     </div>
+    </GameShell>
   );
 }

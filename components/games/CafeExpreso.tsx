@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { supabaseClient } from '@/lib/supabaseClient';
+import { saveGameScore } from '@/lib/gameScoreService';
 import { 
   ArrowLeft, Play, Pause, RotateCcw, HelpCircle, 
   Volume2, VolumeX, Trophy, Sparkles, CheckCircle2, 
@@ -265,19 +265,15 @@ export default function CafeExpreso({ onBack, currentUser, onRefreshUser }: Cafe
     playSound(180, 'sawtooth', 0.5);
     haptic.heavy();
 
-    // Database push setup
+    // Save game score (Supabase if auth, localStorage if guest)
     if (currentUser) {
-      try {
-        supabaseClient.db.saveScore(
-          currentUser.id, 
-          'Café expreso', 
-          finalScore, 
-          Math.min(10, Math.floor(finalScore / 100) + 1)
-        );
-        onRefreshUser();
-      } catch (err) {
-        console.error('Error saving game index score:', err);
-      }
+      saveGameScore(
+        currentUser?.id,
+        'Café expreso',
+        finalScore,
+        Math.min(10, Math.floor(finalScore / 100) + 1)
+      );
+      onRefreshUser();
     }
   };
 

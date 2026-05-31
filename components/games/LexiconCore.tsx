@@ -3,7 +3,8 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { supabaseClient } from '@/lib/supabaseClient';
+import GameShell from '@/components/shared/GameShell';
+
 import { 
   ArrowLeft, Volume2, VolumeX, Sparkles, AlertCircle, Check 
 } from 'lucide-react';
@@ -98,6 +99,7 @@ export default function LexiconCore({ onBack, currentUser, onRefreshUser }: Lexi
   };
 
   return (
+    <GameShell active={gameState !== 'success'}>
     <div className="game-area min-h-screen bg-zinc-950 text-zinc-100 p-6 flex flex-col font-mono">
       <header className="flex justify-between items-center mb-8 border-b border-zinc-800 pb-4">
         <button onClick={onBack} className="text-zinc-500 hover:text-white flex items-center gap-2 min-h-[44px] min-w-[44px]"><ArrowLeft size={16} /> <span className="hidden md:inline">[BACK]</span></button>
@@ -126,5 +128,6 @@ export default function LexiconCore({ onBack, currentUser, onRefreshUser }: Lexi
         </div>
       </div>
     </div>
+    </GameShell>
   );
 }

@@ -4,6 +4,7 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion } from 'motion/react';
+import GameShell from '@/components/shared/GameShell';
 import { ArrowLeft, Volume2, VolumeX, CheckCircle2 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useHaptic } from '@/hooks/use-haptic';
@@ -130,6 +131,7 @@ export default function CircuitForge({ onBack, currentUser, onRefreshUser }: Cir
   const strokeWidth = isMobile ? 4 : 2;
 
   return (
+    <GameShell active={gameState === 'playing'}>
     <div className="game-area min-h-screen bg-neutral-950 text-white p-6 flex flex-col font-mono">
       <header className="flex justify-between items-center mb-8">
         <button onClick={onBack} className="text-neutral-500 hover:text-white flex items-center gap-2 min-h-[44px] min-w-[44px]"><ArrowLeft size={16} /> <span className="hidden md:inline">[BACK]</span></button>
@@ -178,5 +180,6 @@ export default function CircuitForge({ onBack, currentUser, onRefreshUser }: Cir
         )}
       </div>
     </div>
+    </GameShell>
   );
 }

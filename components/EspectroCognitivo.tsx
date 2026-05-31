@@ -3,7 +3,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { supabaseClient } from '@/lib/supabaseClient';
+import { saveGameScore, getGameScores } from '@/lib/gameScoreService';
 import { 
   Brain, Sparkles, Activity, RefreshCw, Trash2, 
   Settings, CheckCircle, ArrowRight, TrendingUp, Info
@@ -157,7 +157,7 @@ export default function EspectroCognitivo({ currentUser }: EspectroCognitivoProp
   // 1. Dynamic combined scores list derived cleanly
   const allScores = useMemo(() => {
     // Read scores from DB fallback
-    const dbScores = currentUser ? supabaseClient.db.getScores(currentUser.id) : [];
+    const dbScores = currentUser ? getGameScores(currentUser.id) : [];
     
     // Sort chronological DB scores
     const orderedDb = [...dbScores].sort(
@@ -229,7 +229,7 @@ export default function EspectroCognitivo({ currentUser }: EspectroCognitivoProp
 
     // Save into guest/local play tracker for persistence too, so it matches central db
     if (currentUser) {
-      supabaseClient.db.saveScore(currentUser.id, gameName, scoreVal, Math.floor(scoreVal / 800) + 1);
+      saveGameScore(currentUser?.id, gameName, scoreVal, Math.floor(scoreVal / 800) + 1);
     }
   };
 

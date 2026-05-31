@@ -3,7 +3,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { supabaseClient } from '@/lib/supabaseClient';
+import { saveGameScore } from '@/lib/gameScoreService';
+import GameShell from '@/components/shared/GameShell';
 import { 
   ArrowLeft, Volume2, VolumeX, Trophy, Sparkles, CheckCircle2, 
   XCircle, Zap, RefreshCw, HelpCircle, Eye, ShieldAlert, Cpu, 
@@ -349,8 +350,8 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
     
     if (currentUser) {
       try {
-        supabaseClient.db.saveScore(
-          currentUser.id,
+        saveGameScore(
+          currentUser?.id,
           'Quantum Trace',
           finalScore,
           Math.min(10, Math.floor(finalScore / 130) + 1)
@@ -369,6 +370,7 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
   const sequenceLabelOffset = Math.round(36 * (isMobile ? mobileFactor : 1));
 
   return (
+    <GameShell active={gameState !== 'lobby'}>
     <div 
       id="quantum-trace-game" 
       className="game-area w-full max-w-[1050px] mx-auto bg-zinc-950 text-zinc-100 border-4 border-zinc-900 p-4 md:p-6 select-none font-sans overflow-hidden relative"
@@ -881,5 +883,6 @@ export default function QuantumTrace({ onBack, currentUser, onRefreshUser }: { o
       </div>
 
     </div>
+    </GameShell>
   );
 }
