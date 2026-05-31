@@ -10,6 +10,7 @@ import {
   useEffect,
   useState,
   useCallback,
+  useMemo,
   type ReactNode,
 } from 'react';
 
@@ -53,7 +54,9 @@ export function useSupabase() {
 
 export default function SupabaseProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
+  const isAvailable = !!supabase;
+
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -61,6 +64,7 @@ export default function SupabaseProvider({ children }: { children: ReactNode }) 
 
   // Fetch profile from public.profiles
   const fetchProfile = useCallback(async (userId: string) => {
+    if (!supabase) return;
     const { data, error } = await supabase
       .from('profiles')
       .select('id, username, display_name, avatar_url, created_at, updated_at')
@@ -75,11 +79,12 @@ export default function SupabaseProvider({ children }: { children: ReactNode }) 
   }, [supabase]);
 
   const refreshProfile = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id || !supabase) return;
     await fetchProfile(user.id);
-  }, [user, fetchProfile]);
+  }, [user, fetchProfile, supabase]);
 
   const signIn = useCallback(async (email: string, password: string) => {
+    if (!supabase) return { error: 'Supabase no disponible' };
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { error: error.message };
     router.refresh();
@@ -87,6 +92,7 @@ export default function SupabaseProvider({ children }: { children: ReactNode }) 
   }, [supabase, router]);
 
   const signUp = useCallback(async (email: string, password: string) => {
+    if (!supabase) return { error: 'Supabase no disponible' };
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -99,6 +105,7 @@ export default function SupabaseProvider({ children }: { children: ReactNode }) 
   }, [supabase]);
 
   const signOut = useCallback(async () => {
+    if (!supabase) return;
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
@@ -107,6 +114,7 @@ export default function SupabaseProvider({ children }: { children: ReactNode }) 
   }, [supabase, router]);
 
   const updateProfile = useCallback(async (updates: Record<string, unknown>) => {
+    if (!supabase) return { error: 'Supabase no disponible' };
     if (!user?.id) return { error: 'No authenticated user' };
 
     const { error } = await supabase
@@ -121,10 +129,19 @@ export default function SupabaseProvider({ children }: { children: ReactNode }) 
     return { error: error?.message ?? null };
   }, [supabase, user]);
 
-  // Listen to auth state changes
+  // Forzar loading false si Supabase no está disponible (SSR/build)
   useEffect(() => {
+    if (!isAvailable) {
+      setIsLoading(false);
+    }
+  }, [isAvailable]);
+
+  // Listen to auth state changes (only on client with available Supabase)
+  useEffect(() => {
+    if (!supabase) return;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, _session) => {
+      async (_event: string, _session: Session | null) => {
         setSession(_session);
         setUser(_session?.user ?? null);
 
