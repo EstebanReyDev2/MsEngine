@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSupabase } from '@/components/SupabaseProvider';
-import { Brain, Mail, Lock, UserPlus, LogIn, ArrowLeft } from 'lucide-react';
+import { Brain, Mail, Lock, UserPlus, LogIn, ArrowLeft, Chrome, Apple } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -29,12 +29,15 @@ export default function LoginPage() {
           setError(err);
         } else {
           setSuccess('Cuenta creada. Revisá tu email para confirmar el registro.');
+          // After signup, redirect to onboarding after email confirmation
+          setTimeout(() => router.push('/auth/onboarding'), 2000);
         }
       } else {
         const { error: err } = await signIn(email, password);
         if (err) {
           setError(err);
         } else {
+          // After sign in, check if onboarding needed
           router.push('/');
         }
       }
@@ -141,6 +144,42 @@ export default function LoginPage() {
               </span>
             </button>
           </form>
+
+          {/* ── OAuth Providers (preparados para activar) ── */}
+          {/*
+            INSTRUCCIONES PARA ACTIVAR OAUTH:
+            1. Ir a Supabase Dashboard → Authentication → Providers
+            2. Habilitar Google + Apple
+            3. Configurar Client ID y Secret desde la consola de cada proveedor
+            4. Agregar las URLs de redirect: https://TU-DOMINIO/auth/callback
+            5. Descomentar el bloque de abajo y los imports de Chrome/Apple
+          */}
+
+          {/* 
+          <div className="mt-6 pt-5 border-t border-[#1A1A1A]/30">
+            <p className="text-[9px] font-mono text-[#1A1A1A]/40 text-center mb-3 uppercase tracking-widest">
+              O iniciar con
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => supabase.auth.signInWithOAuth({ provider: 'google' })}
+                className="flex-1 py-3 bg-white/50 hover:bg-white border border-[#1A1A1A] rounded-none text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-all font-mono uppercase"
+              >
+                <Chrome size={16} />
+                Google
+              </button>
+              <button
+                type="button"
+                onClick={() => supabase.auth.signInWithOAuth({ provider: 'apple' })}
+                className="flex-1 py-3 bg-white/50 hover:bg-white border border-[#1A1A1A] rounded-none text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-all font-mono uppercase"
+              >
+                <Apple size={16} />
+                Apple
+              </button>
+            </div>
+          </div>
+          */}
 
           {/* Toggle sign-up / sign-in */}
           <div className="mt-6 pt-5 border-t border-[#1A1A1A]/30 text-center">

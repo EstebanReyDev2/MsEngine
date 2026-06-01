@@ -27,7 +27,7 @@ import { Calendar, BarChart2, Sparkles, Trophy, Settings, Brain, User } from 'lu
 
 export default function Home() {
   const router = useRouter();
-  const { user: supabaseUser, profile, isLoading: authLoading, signOut, updateProfile, refreshProfile } = useSupabase();
+  const { user: supabaseUser, profile, isLoading: authLoading, needsOnboarding, signOut, updateProfile, refreshProfile } = useSupabase();
   const [activeTab, setActiveTab] = useState<'today' | 'insights' | 'practice' | 'profile' | 'game'>('today');
   const [currentGame, setCurrentGame] = useState<string>('spatial');
   const [showSettings, setShowSettings] = useState(false);
@@ -37,11 +37,19 @@ export default function Home() {
   // Build the unified "app user" from Supabase auth+profile OR localStorage guest
   const appUser = useMemo(() => {
     if (supabaseUser && profile) {
+      // Usar nombre real si está disponible, sino display_name, sino username
+      const fullName = [profile.first_name, profile.last_name]
+        .filter(Boolean)
+        .join(' ');
+      const displayName = fullName || profile.display_name || profile.username;
+
       return {
         id: supabaseUser.id,
         username: profile.username,
+        displayName,
+        first_name: profile.first_name,
         email: supabaseUser.email,
-        cerebra_rank: 'Iniciado del Templo', // Will come from cognitive_metrics later
+        cerebra_rank: 'Iniciado del Templo',
         created_at: supabaseUser.created_at,
         is_guest: false,
       };
@@ -49,6 +57,8 @@ export default function Home() {
     return guestUser || {
       id: 'guest',
       username: 'Invitado',
+      displayName: 'Invitado',
+      first_name: null,
       cerebra_rank: 'Iniciado del Templo',
       created_at: new Date().toISOString(),
       is_guest: true,
@@ -64,6 +74,13 @@ export default function Home() {
       }
     });
   }, []);
+
+  // Redirect to onboarding if profile is incomplete
+  useEffect(() => {
+    if (!authLoading && needsOnboarding) {
+      router.push('/auth/onboarding');
+    }
+  }, [authLoading, needsOnboarding, router]);
 
   const handleSignOut = async () => {
     // If authenticated with Supabase, sign out
@@ -239,7 +256,7 @@ export default function Home() {
                 onClick={() => setActiveTab('profile')}
                 className={`hover:text-[#FF5028] cursor-pointer transition-colors ${activeTab === 'profile' ? 'text-[#FF5028] font-extrabold border-b-2 border-[#1A1A1A] pb-1' : ''}`}
               >
-                Registro
+                {supabaseUser ? 'Perfil' : 'Registro'}
               </button>
             </nav>
 
@@ -264,7 +281,7 @@ export default function Home() {
                   onClick={() => setActiveTab('profile')}
                   className="w-8 h-8 bg-[#FF5028] text-white flex items-center justify-center font-black text-xs uppercase cursor-pointer border border-[#1A1A1A] hover:scale-105 transition-all"
                 >
-                  {appUser?.username?.[0] || 'G'}
+                  {(appUser?.displayName?.[0] || appUser?.username?.[0] || '?').toUpperCase()}
                 </div>
               )}
             </div>
@@ -377,7 +394,7 @@ export default function Home() {
             className={`flex flex-col items-center justify-center flex-1 cursor-pointer transition-all ${activeTab === 'profile' ? 'text-[#FF5028] font-black scale-105' : 'text-[#1A1A1A]/60 hover:text-[#1A1A1A]'}`}
           >
             <User size={18} />
-            <span className="text-[9px] font-bold uppercase tracking-wider mt-1.5">Registro</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider mt-1.5">{supabaseUser ? 'Perfil' : 'Registro'}</span>
           </button>
         </nav>
 
